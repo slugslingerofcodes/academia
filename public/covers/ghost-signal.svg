@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="ui-monospace, monospace">
+  <defs>
+    <radialGradient id="vign4" cx="0.5" cy="0.5" r="0.78">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.6"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="#0a0a0a"/>
+  <!-- static rows -->
+  <g fill="#ffffff" opacity="0.07">
+    <rect x="0" y="70" width="620" height="4"/><rect x="760" y="70" width="520" height="4"/>
+    <rect x="0" y="120" width="240" height="4"/><rect x="300" y="120" width="980" height="4"/>
+    <rect x="0" y="170" width="1090" height="4"/><rect x="1140" y="170" width="140" height="4"/>
+    <rect x="0" y="520" width="430" height="4"/><rect x="500" y="520" width="780" height="4"/>
+    <rect x="0" y="570" width="900" height="4"/><rect x="960" y="570" width="320" height="4"/>
+    <rect x="0" y="620" width="330" height="4"/><rect x="390" y="620" width="890" height="4"/>
+    <rect x="0" y="660" width="1180" height="4"/>
+  </g>
+  <!-- oscilloscope trace with rgb ghosts -->
+  <polyline points="0,360 120,360 160,352 200,368 240,360 300,360 330,300 350,430 370,320 390,395 410,360 520,360 560,348 600,372 640,360 700,360 730,250 755,470 780,290 805,420 830,360 940,360 980,352 1020,368 1060,360 1280,360"
+    fill="none" stroke="#ff4d4d" stroke-width="2" opacity="0.55" transform="translate(-7,-5)"/>
+  <polyline points="0,360 120,360 160,352 200,368 240,360 300,360 330,300 350,430 370,320 390,395 410,360 520,360 560,348 600,372 640,360 700,360 730,250 755,470 780,290 805,420 830,360 940,360 980,352 1020,368 1060,360 1280,360"
+    fill="none" stroke="#4dc9ff" stroke-width="2" opacity="0.55" transform="translate(7,5)"/>
+  <polyline points="0,360 120,360 160,352 200,368 240,360 300,360 330,300 350,430 370,320 390,395 410,360 520,360 560,348 600,372 640,360 700,360 730,250 755,470 780,290 805,420 830,360 940,360 980,352 1020,368 1060,360 1280,360"
+    fill="none" stroke="#7cff6b" stroke-width="2.5"/>
+  <!-- frequency scale -->
+  <g stroke="#6b6b6b" stroke-opacity="0.7">
+    <line x1="80" y1="470" x2="1200" y2="470"/>
+    <line x1="80" y1="462" x2="80" y2="478"/><line x1="304" y1="465" x2="304" y2="475"/>
+    <line x1="528" y1="462" x2="528" y2="478"/><line x1="752" y1="465" x2="752" y2="475"/>
+    <line x1="976" y1="462" x2="976" y2="478"/><line x1="1200" y1="462" x2="1200" y2="478"/>
+  </g>
+  <circle cx="752" cy="470" r="5" fill="#7cff6b"/>
+  <text x="736" y="500" fill="#7cff6b" font-size="15" letter-spacing="2">76.4</text>
+  <text x="56" y="84" fill="#7cff6b" font-size="22" letter-spacing="6">GHOST SIGNAL 76.4MHz</text>
+  <text x="56" y="112" fill="#6b6b6b" font-size="16" letter-spacing="4">幽霊信号 — NO CARRIER / VOICES ONLY</text>
+  <text x="1224" y="662" fill="#6b6b6b" font-size="14" letter-spacing="4" text-anchor="end">TAPE LOOP C — 12:00 AM</text>
+  <rect x="0.75" y="0.75" width="1278.5" height="718.5" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1.5"/>
+  <rect width="1280" height="720" fill="url(#vign4)"/>
+</svg>
