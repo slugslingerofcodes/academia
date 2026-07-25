@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, CalendarDays, Clock, Plus, X } from "lucide-react";
+import { BellRing, CalendarDays, Clock, Pencil, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
-import { CLASS_HUES, type ClassHue } from "@/lib/planner/types";
+import { CLASS_HUES, type ClassEntry, type ClassHue } from "@/lib/planner/types";
 import { LEAD_MINUTES, type ClassAlerts } from "@/lib/planner/use-class-notifications";
 import {
   DAY_FULL,
@@ -23,9 +23,9 @@ import { EmptyState, Field, Panel, inputCls } from "./ui";
 
 const HUE_COLOR: Record<ClassHue, string> = {
   accent: "var(--accent)",
-  blue: "var(--glitch-b)",
-  red: "var(--glitch-r)",
-  mono: "#d97706",
+  blue: "var(--info)",
+  red: "var(--danger)",
+  mono: "var(--warn)",
 };
 
 function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAlerts }) {
@@ -93,25 +93,41 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
   );
 }
 
-function AddClassForm({ store }: { store: PlannerStore }) {
-  const [title, setTitle] = useState("");
-  const [day, setDay] = useState(0);
-  const [start, setStart] = useState("09:00");
-  const [end, setEnd] = useState("10:00");
-  const [location, setLocation] = useState("");
+function ClassForm({
+  store,
+  editing,
+  onDone,
+}: {
+  store: PlannerStore;
+  editing: ClassEntry | null;
+  onDone: () => void;
+}) {
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [day, setDay] = useState(editing?.day ?? 0);
+  const [start, setStart] = useState(editing?.start ?? "09:00");
+  const [end, setEnd] = useState(editing?.end ?? "10:00");
+  const [location, setLocation] = useState(editing?.location ?? "");
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
     if (!title.trim()) return setError("Please enter a class name.");
     if (!start || !end || end <= start)
       return setError("The end time must be after the start time.");
-    store.addClass({
-      id: uid(),
+    const fields = {
       title: title.trim(),
       day,
       start,
       end,
       location: location.trim() || undefined,
+    };
+    if (editing) {
+      store.updateClass(editing.id, fields);
+      onDone();
+      return;
+    }
+    store.addClass({
+      id: uid(),
+      ...fields,
       hue: CLASS_HUES[store.data.classes.length % CLASS_HUES.length],
     });
     setTitle("");
@@ -120,7 +136,10 @@ function AddClassForm({ store }: { store: PlannerStore }) {
   };
 
   return (
-    <Panel title="Add a class" icon={<Plus />}>
+    <Panel
+      title={editing ? `Edit class — ${editing.title}` : "Add a class"}
+      icon={editing ? <Pencil /> : <Plus />}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -162,9 +181,20 @@ function AddClassForm({ store }: { store: PlannerStore }) {
         </div>
         <div className="mt-5 flex items-center justify-end gap-3">
           {error && <span className="text-sm text-destructive">{error}</span>}
+          {editing && (
+            <Button variant="ghost" onClick={onDone}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit" className="rounded-full px-5">
-            <Plus data-icon="inline-start" />
-            Add to timetable
+            {editing ? (
+              "Save changes"
+            ) : (
+              <>
+                <Plus data-icon="inline-start" />
+                Add to timetable
+              </>
+            )}
           </Button>
         </div>
       </form>
@@ -172,7 +202,13 @@ function AddClassForm({ store }: { store: PlannerStore }) {
   );
 }
 
-function WeekGrid({ store }: { store: PlannerStore }) {
+function WeekGrid({
+  store,
+  onEdit,
+}: {
+  store: PlannerStore;
+  onEdit: (cls: ClassEntry) => void;
+}) {
   const { classes, holidays } = store.data;
   const week = currentWeekDates();
   const todayKey = toDateKey(new Date());
@@ -196,7 +232,7 @@ function WeekGrid({ store }: { store: PlannerStore }) {
           <div
             key={dateKey}
             className={cn(
-              "flex min-h-40 flex-col rounded-2xl border bg-card p-3 shadow-[0_1px_3px_rgba(28,33,48,0.06)]",
+              "flex min-h-40 flex-col rounded-2xl border bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.3)]",
               isToday ? "border-accent ring-2 ring-ring/30" : "border-border"
             )}
           >
@@ -212,7 +248,7 @@ function WeekGrid({ store }: { store: PlannerStore }) {
                   {formatDateKey(dateKey)}
                 </span>
               </span>
-              {isToday && <Badge className="bg-accent text-white">Today</Badge>}
+              {isToday && <Badge className="bg-accent text-primary-foreground">Today</Badge>}
             </div>
 
             {isHoliday && (
@@ -242,14 +278,24 @@ function WeekGrid({ store }: { store: PlannerStore }) {
                     {cls.start}–{cls.end}
                     {cls.location && ` · ${cls.location}`}
                   </div>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${cls.title}`}
-                    className="absolute top-1.5 right-1.5 hidden rounded p-0.5 text-muted hover:bg-destructive/10 hover:text-destructive group-hover:block"
-                    onClick={() => store.removeClass(cls.id)}
-                  >
-                    <X className="size-3.5" />
-                  </button>
+                  <span className="absolute top-1.5 right-1.5 hidden items-center gap-0.5 group-hover:flex">
+                    <button
+                      type="button"
+                      aria-label={`Edit ${cls.title}`}
+                      className="rounded p-0.5 text-muted hover:bg-accent-faint hover:text-accent"
+                      onClick={() => onEdit(cls)}
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${cls.title}`}
+                      className="rounded p-0.5 text-muted hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => store.removeClass(cls.id)}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
                 </div>
               ))}
             </div>
@@ -261,11 +307,26 @@ function WeekGrid({ store }: { store: PlannerStore }) {
 }
 
 export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: ClassAlerts }) {
+  const [editingClass, setEditingClass] = useState<ClassEntry | null>(null);
+
   return (
     <div className="flex flex-col gap-5">
       <AlertsPanel store={store} alerts={alerts} />
-      <AddClassForm store={store} />
-      <WeekGrid store={store} />
+      <div id="class-form">
+        <ClassForm
+          key={editingClass?.id ?? "new"}
+          store={store}
+          editing={editingClass}
+          onDone={() => setEditingClass(null)}
+        />
+      </div>
+      <WeekGrid
+        store={store}
+        onEdit={(cls) => {
+          setEditingClass(cls);
+          document.getElementById("class-form")?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
     </div>
   );
 }

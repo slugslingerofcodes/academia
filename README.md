@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ledger — Tasks, Timetable & Holidays
+
+A student planner built with [Next.js](https://nextjs.org). Everything is stored
+locally in the browser (localStorage) — no account or backend needed.
+
+## Features
+
+- **Tasks & Projects** — start a task or project over any period and Ledger
+  generates a timetable: work sessions spread evenly across the dates, skipping
+  weekends (optional) and marked holidays. Check sessions off to track progress.
+- **Weekly Timetable** — add your classes (subject, day, time, room) and see the
+  current week at a glance, with today highlighted.
+- **Class reminders** — browser notifications fire 10 minutes before each class.
+  Keep the app open in a tab; reminders are deduped per class per day.
+- **Holidays** — mark any date as a holiday. Reminders pause on that day, the
+  week view flags it, and newly generated timetables skip it.
+- **Think** — capture small notes with a title and body, search them, and edit
+  or delete them any time.
+- **Resume builder** — fill in your details, education, experience, projects and
+  skills; a live paper preview updates as you type. Everything saves locally so
+  you can come back and edit any time, and "Download PDF" prints just the resume.
+
+Tasks, classes, holidays and notes all support full create / edit / delete.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — start the dev server
+- `npm run build` — production build
+- `npm start` — serve the production build
+- `npm run lint` — run ESLint

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# unrelated project that lives alongside this one
+/trading_strategy
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, ClipboardList, Sparkles, Trash2 } from "lucide-react";
+import { CalendarPlus, Check, ClipboardList, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -148,44 +148,89 @@ function NewEntryForm({ store }: { store: PlannerStore }) {
 
 function ProjectCard({ project, store }: { project: Project; store: PlannerStore }) {
   const todayKey = toDateKey(new Date());
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [notes, setNotes] = useState(project.notes ?? "");
   const done = project.sessions.filter((s) => s.done).length;
   const total = project.sessions.length;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   const complete = total > 0 && done === total;
 
+  const saveEdit = () => {
+    if (!name.trim()) return;
+    store.updateProject(project.id, { name: name.trim(), notes: notes.trim() || undefined });
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setName(project.name);
+    setNotes(project.notes ?? "");
+    setEditing(false);
+  };
+
   return (
     <Panel className={cn(complete && "border-accent/40 bg-accent-faint")}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-lg font-semibold text-foreground">{project.name}</span>
-            <Badge
-              variant={project.kind === "project" ? "default" : "secondary"}
-              className="capitalize"
-            >
-              {project.kind}
-            </Badge>
-            {complete && (
-              <Badge className="gap-1 bg-accent text-white">
-                <Check className="size-3" /> Complete
-              </Badge>
-            )}
-          </div>
-          <div className="mt-1 text-sm text-muted">
-            {formatDateKey(project.start)} – {formatDateKey(project.end)}
-            {project.notes && <span className="ml-2 text-foreground/70">· {project.notes}</span>}
+      {editing ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Name">
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Notes (optional)">
+            <input className={inputCls} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Field>
+          <div className="flex items-center justify-end gap-2 sm:col-span-2">
+            <Button variant="ghost" size="sm" onClick={cancelEdit}>
+              Cancel
+            </Button>
+            <Button size="sm" className="rounded-full px-4" onClick={saveEdit}>
+              Save
+            </Button>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted hover:text-destructive"
-          onClick={() => store.removeProject(project.id)}
-        >
-          <Trash2 data-icon="inline-start" />
-          Delete
-        </Button>
-      </div>
+      ) : (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-lg font-semibold text-foreground">{project.name}</span>
+              <Badge
+                variant={project.kind === "project" ? "default" : "secondary"}
+                className="capitalize"
+              >
+                {project.kind}
+              </Badge>
+              {complete && (
+                <Badge className="gap-1 bg-accent text-primary-foreground">
+                  <Check className="size-3" /> Complete
+                </Badge>
+              )}
+            </div>
+            <div className="mt-1 text-sm text-muted">
+              {formatDateKey(project.start)} – {formatDateKey(project.end)}
+              {project.notes && <span className="ml-2 text-foreground/70">· {project.notes}</span>}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted hover:text-accent"
+              onClick={() => setEditing(true)}
+            >
+              <Pencil data-icon="inline-start" />
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted hover:text-destructive"
+              onClick={() => store.removeProject(project.id)}
+            >
+              <Trash2 data-icon="inline-start" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 flex items-center gap-3">
         <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-secondary">
@@ -224,7 +269,7 @@ function ProjectCard({ project, store }: { project: Project; store: PlannerStore
                   s.done ? "border-accent bg-accent" : "border-input bg-card"
                 )}
               >
-                {s.done && <Check className="size-3.5 text-white" strokeWidth={3} />}
+                {s.done && <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />}
               </span>
               <span className="min-w-0">
                 <span

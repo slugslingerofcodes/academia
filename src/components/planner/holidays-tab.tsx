@@ -1,13 +1,111 @@
 "use client";
 
 import { useState } from "react";
-import { PartyPopper, TreePalm, Trash2 } from "lucide-react";
+import { PartyPopper, Pencil, TreePalm, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
+import type { Holiday } from "@/lib/planner/types";
 import { formatDateKeyLong, toDateKey, uid } from "@/lib/planner/schedule";
 import { EmptyState, Field, Panel, inputCls } from "./ui";
+
+function HolidayRow({
+  holiday,
+  store,
+  todayKey,
+}: {
+  holiday: Holiday;
+  store: PlannerStore;
+  todayKey: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [date, setDate] = useState(holiday.date);
+  const [label, setLabel] = useState(holiday.label ?? "");
+  const past = holiday.date < todayKey;
+
+  const save = () => {
+    if (!date) return;
+    // an edit that lands on another marked date replaces that entry
+    const dup = store.data.holidays.find((x) => x.id !== holiday.id && x.date === date);
+    if (dup) store.removeHoliday(dup.id);
+    store.updateHoliday(holiday.id, { date, label: label.trim() || undefined });
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setDate(holiday.date);
+    setLabel(holiday.label ?? "");
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <li className="py-3">
+        <div className="grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-end">
+          <Field label="Date">
+            <input
+              className={inputCls}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Label (optional)">
+            <input
+              className={inputCls}
+              value={label}
+              placeholder="e.g. Diwali break"
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </Field>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={cancel}>
+              Cancel
+            </Button>
+            <Button size="sm" className="rounded-full px-4" onClick={save}>
+              Save
+            </Button>
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex items-center justify-between gap-3 py-3">
+      <div className={cn("flex flex-wrap items-center gap-2.5", past && "opacity-50")}>
+        <span className="text-sm font-medium text-foreground">
+          {formatDateKeyLong(holiday.date)}
+        </span>
+        {holiday.date === todayKey && (
+          <Badge className="bg-accent text-primary-foreground">Today</Badge>
+        )}
+        {holiday.label && <span className="text-sm text-muted">{holiday.label}</span>}
+      </div>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted hover:text-accent"
+          onClick={() => setEditing(true)}
+        >
+          <Pencil data-icon="inline-start" />
+          Edit
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted hover:text-destructive"
+          onClick={() => store.removeHoliday(holiday.id)}
+        >
+          <Trash2 data-icon="inline-start" />
+          Remove
+        </Button>
+      </div>
+    </li>
+  );
+}
 
 export function HolidaysTab({ store }: { store: PlannerStore }) {
   const todayKey = toDateKey(new Date());
@@ -80,29 +178,9 @@ export function HolidaysTab({ store }: { store: PlannerStore }) {
       ) : (
         <Panel title={`Your holidays (${holidays.length})`} icon={<PartyPopper />}>
           <ul className="flex flex-col divide-y divide-border">
-            {holidays.map((h) => {
-              const past = h.date < todayKey;
-              return (
-                <li key={h.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className={cn("flex flex-wrap items-center gap-2.5", past && "opacity-50")}>
-                    <span className="text-sm font-medium text-foreground">
-                      {formatDateKeyLong(h.date)}
-                    </span>
-                    {h.date === todayKey && <Badge className="bg-accent text-white">Today</Badge>}
-                    {h.label && <span className="text-sm text-muted">{h.label}</span>}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted hover:text-destructive"
-                    onClick={() => store.removeHoliday(h.id)}
-                  >
-                    <Trash2 data-icon="inline-start" />
-                    Remove
-                  </Button>
-                </li>
-              );
-            })}
+            {holidays.map((h) => (
+              <HolidayRow key={h.id} holiday={h} store={store} todayKey={todayKey} />
+            ))}
           </ul>
         </Panel>
       )}

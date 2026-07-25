@@ -1,19 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, CalendarDays, ClipboardList, TreePalm } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, ClipboardList, FileText, Lightbulb, TreePalm } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlanner } from "@/lib/planner/use-planner";
 import { useClassNotifications } from "@/lib/planner/use-class-notifications";
 import { TasksTab } from "./tasks-tab";
 import { TimetableTab } from "./timetable-tab";
 import { HolidaysTab } from "./holidays-tab";
+import { ResumeTab } from "./resume-tab";
+import { ThinkTab } from "./think-tab";
 
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
   { id: "timetable", label: "Weekly Timetable", icon: CalendarDays },
   { id: "holidays", label: "Holidays", icon: TreePalm },
+  { id: "think", label: "Think", icon: Lightbulb },
+  { id: "resume", label: "Resume", icon: FileText },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -24,27 +27,11 @@ export function PlannerApp() {
   const alerts = useClassNotifications(store.data.classes, store.data.holidays);
   const [tab, setTab] = useState<TabId>("missions");
 
-  // the studio pages hide the native cursor; restore it while the planner is open
-  useEffect(() => {
-    const prev = document.body.dataset.customCursor;
-    document.body.dataset.customCursor = "false";
-    return () => {
-      document.body.dataset.customCursor = prev ?? "true";
-    };
-  }, []);
-
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 md:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 pt-8 pb-6">
         <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-accent"
-          >
-            <ArrowLeft className="size-4" />
-            Studio home
-          </Link>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
             Ledger
           </h1>
           <p className="mt-1 text-sm text-muted">
@@ -65,7 +52,7 @@ export function PlannerApp() {
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
               tab === t.id
-                ? "bg-card text-accent shadow-[0_1px_3px_rgba(28,33,48,0.12)]"
+                ? "bg-card text-accent shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
                 : "text-muted hover:text-foreground"
             )}
           >
@@ -82,6 +69,8 @@ export function PlannerApp() {
           {tab === "missions" && <TasksTab store={store} />}
           {tab === "timetable" && <TimetableTab store={store} alerts={alerts} />}
           {tab === "holidays" && <HolidaysTab store={store} />}
+          {tab === "think" && <ThinkTab store={store} />}
+          {tab === "resume" && <ResumeTab store={store} />}
         </>
       )}
     </div>

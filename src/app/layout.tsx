@@ -1,28 +1,16 @@
 import type { Metadata } from "next";
-import { Anton, JetBrains_Mono, Noto_Sans_JP } from "next/font/google";
+import { Inter } from "next/font/google";
 import "../styles.css";
 
-const anton = Anton({
-  variable: "--font-anton",
-  weight: "400",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-});
-
-const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-});
-
-const notoJp = Noto_Sans_JP({
-  variable: "--font-jp",
-  subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "MANIAC▲ — Digital Works Studio",
+  title: "Ledger — Tasks, Timetable & Holidays",
   description:
-    "MANIAC is a night-mode digital studio crafting realtime graphics, sound machines and playable worlds. 夜のデジタル制作所。",
+    "Track tasks and projects, generate work timetables over any period, manage your weekly class schedule with 10-minute reminders, mark holidays, and build an editable resume.",
 };
 
 export default function RootLayout({
@@ -31,13 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${anton.variable} ${jetbrains.variable} ${notoJp.variable} h-full antialiased`}
-    >
-      <body className="min-h-full" data-custom-cursor="true">
-        {children}
-      </body>
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
