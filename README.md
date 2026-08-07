@@ -10,8 +10,14 @@ locally in the browser (localStorage) — no account or backend needed.
   weekends (optional) and marked holidays. Check sessions off to track progress.
 - **Weekly Timetable** — add a subject once with its code, name and kind
   (lecture / lab / tutorial), ticking every day it meets and giving each day its
-  own times and room. The week view colours sessions by kind, with today
-  highlighted.
+  own times and room. View it as a **chart** (time down the side, days across
+  the top, overlapping classes shown side by side) or as a per-day **list**.
+  Sessions are coloured by kind, with today highlighted.
+- **Import a calendar file** — drop in an `.ics` from your university portal,
+  Google Calendar, or Academia itself, and its weekly classes are added. Handles
+  folded lines, `BYDAY` repeats across several days, UTC and floating times, and
+  `DURATION` in place of `DTEND`; all-day and non-weekly entries are skipped, and
+  classes already in your timetable aren't duplicated.
 - **Class reminders** — browser notifications fire 10 minutes before each class.
   Keep the app open in a tab; reminders are deduped per class per day.
 - **Holidays** — mark any date as a holiday. Reminders pause on that day, the

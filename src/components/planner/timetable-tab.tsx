@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, CalendarDays, Clock, Pencil, X } from "lucide-react";
+import { BellRing, CalendarDays, Clock, LayoutGrid, List, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ import {
 } from "@/lib/planner/schedule";
 import { EmptyState, Panel } from "./ui";
 import { ClassForm } from "./class-form";
+import { TimetableGrid } from "./timetable-grid";
+import { CalendarImportPanel } from "./calendar-import";
 import { CalendarSyncPanel } from "./calendar-sync";
 import { GoogleCalendarPanel } from "./google-calendar-panel";
 
@@ -224,12 +226,62 @@ function WeekGrid({
   );
 }
 
+const VIEWS = [
+  { id: "chart", label: "Chart", icon: LayoutGrid },
+  { id: "cards", label: "List", icon: List },
+] as const;
+
+type ViewId = (typeof VIEWS)[number]["id"];
+
 export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: ClassAlerts }) {
   const [editingClass, setEditingClass] = useState<ClassEntry | null>(null);
+  const [view, setView] = useState<ViewId>("chart");
+
+  const edit = (cls: ClassEntry) => {
+    setEditingClass(cls);
+    document.getElementById("class-form")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const hasClasses = store.data.classes.length > 0;
 
   return (
     <div className="flex flex-col gap-5">
       <AlertsPanel store={store} alerts={alerts} />
+
+      {hasClasses && (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-foreground">This week</h2>
+          <div className="flex gap-1 rounded-full border border-border bg-secondary p-1">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setView(v.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  view === v.id
+                    ? "bg-card text-accent shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                    : "text-muted hover:text-foreground"
+                )}
+              >
+                <v.icon className="size-3.5" />
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!hasClasses ? (
+        <EmptyState icon={<CalendarDays />}>
+          Your timetable is empty — add a class below, or import a calendar file.
+        </EmptyState>
+      ) : view === "chart" ? (
+        <TimetableGrid store={store} onEdit={edit} />
+      ) : (
+        <WeekGrid store={store} onEdit={edit} />
+      )}
+
       <div id="class-form">
         <ClassForm
           key={editingClass?.id ?? "new"}
@@ -238,13 +290,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
           onDone={() => setEditingClass(null)}
         />
       </div>
-      <WeekGrid
-        store={store}
-        onEdit={(cls) => {
-          setEditingClass(cls);
-          document.getElementById("class-form")?.scrollIntoView({ behavior: "smooth" });
-        }}
-      />
+      <CalendarImportPanel store={store} />
       <GoogleCalendarPanel store={store} />
       <CalendarSyncPanel store={store} />
     </div>
