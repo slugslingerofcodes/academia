@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Academia</string>
+    <string name="bubble_description">Open Academia</string>
+    <string name="overlay_needed">Allow \"Draw over other apps\" so the Academia bubble can float over whatever you\'re using.</string>
+    <string name="overlay_denied">Permission denied — the floating bubble stays off. You can enable it later in Settings.</string>
+</resources>

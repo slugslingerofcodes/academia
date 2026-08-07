@@ -194,11 +194,13 @@ function WeekGrid({
                     </span>
                     {cls.location && <span>· {cls.location}</span>}
                   </div>
-                  <span className="absolute top-1.5 right-1.5 hidden items-center gap-0.5 group-hover:flex">
+                  {/* always visible: on a touch screen there is no hover, so
+                      hiding these behind :hover made them unreachable on phones */}
+                  <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5">
                     <button
                       type="button"
                       aria-label={`Edit ${classLabel(cls)}`}
-                      className="rounded p-0.5 text-muted hover:bg-accent-faint hover:text-accent"
+                      className="rounded p-1 text-muted/70 hover:bg-accent-faint hover:text-accent"
                       onClick={() => onEdit(cls)}
                     >
                       <Pencil className="size-3.5" />
@@ -206,7 +208,7 @@ function WeekGrid({
                     <button
                       type="button"
                       aria-label={`Remove ${classLabel(cls)}`}
-                      className="rounded p-0.5 text-muted hover:bg-destructive/10 hover:text-destructive"
+                      className="rounded p-1 text-muted/70 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => store.removeClass(cls.id)}
                     >
                       <X className="size-3.5" />

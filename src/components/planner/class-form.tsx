@@ -180,6 +180,11 @@ export function ClassForm({
               ? "Day and time (tick more days to add extra meetings)"
               : "Days and times — tick every day this class meets"}
           </legend>
+          <p className="mt-1 text-xs text-muted">
+            Every class repeats weekly — it shows on this day each week, and
+            exports to Google Calendar as a weekly repeating event. Days you mark
+            as holidays are skipped automatically, with no reminder.
+          </p>
           <div className="mt-2 flex flex-col gap-2">
             {DAY_NAMES.map((dayName, i) => {
               const slot = slots[i];
