@@ -15,14 +15,14 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["productivity", "education"],
     icons: [
       {
-        src: "/icon",
+        src: "/icon.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        // padded so Android's circular/squircle mask never clips the monogram
-        src: "/icon1",
+        // inset so Android's circular/squircle mask never clips the laurel
+        src: "/icon1.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

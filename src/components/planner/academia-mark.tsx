@@ -1,7 +1,6 @@
 /**
- * Placeholder crest shown until `public/logo.png` exists. The real logo is
- * layered on top as a background image, so dropping the file in replaces this
- * with no code change.
+ * Simplified crest drawn behind the real logo image, so the header still shows
+ * a mark if `public/logo.png` ever fails to load.
  */
 export function AcademiaMark({ className }: { className?: string }) {
   return (
