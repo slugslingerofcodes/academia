@@ -11,6 +11,7 @@ import { HolidaysTab } from "./holidays-tab";
 import { ResumeTab } from "./resume-tab";
 import { ThinkTab } from "./think-tab";
 import { AcademiaMark } from "./academia-mark";
+import { InstallPrompt } from "./install-prompt";
 
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
@@ -55,6 +56,8 @@ export function PlannerApp() {
           Saved locally in your browser
         </span>
       </header>
+
+      <InstallPrompt />
 
       <nav className="mb-6 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-border bg-secondary p-1">
         {TABS.map((t) => (

@@ -28,6 +28,20 @@ locally in the browser (localStorage) — no account or backend needed.
 
 Tasks, classes, holidays and notes all support full create / edit / delete.
 
+## Install it on your phone
+
+Academia is a PWA, so it installs to the home screen and opens fullscreen with
+no address bar — like a native app.
+
+- **iPhone / iPad** — open the site in Safari, tap **Share**, then
+  **Add to Home Screen**. (iOS only offers this from Safari, not Chrome.)
+- **Android** — Chrome shows an **Install app** button in the app itself, or
+  use **⋮ → Add to Home screen**.
+
+The app icon, name and colours come from `app/manifest.ts`, with the icons
+generated at build time by `app/icon.tsx`, `app/icon1.tsx` (maskable) and
+`app/apple-icon.tsx` — no binary image assets required.
+
 ## Getting Started
 
 ```bash
