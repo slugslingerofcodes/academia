@@ -42,6 +42,21 @@ The app icon, name and colours come from `app/manifest.ts`, with the icons
 generated at build time by `app/icon.tsx`, `app/icon1.tsx` (maskable) and
 `app/apple-icon.tsx` — no binary image assets required.
 
+### Offline
+
+`public/sw.js` caches the app shell and build assets, so Academia opens and
+works with no connection — useful in a lecture hall with no signal. Since all
+your data lives in the browser anyway, everything stays editable offline.
+
+The worker is **network-first** for pages, so a new deploy is picked up as soon
+as you're online again and a bad cache can't strand you on an old build. Only
+content-hashed files under `/_next/static/` are served cache-first. Bump
+`VERSION` in `public/sw.js` to force all clients onto a fresh cache.
+
+It registers in production only — in development it would fight hot reloading.
+To exercise it locally, run `npm run build && npm start` rather than
+`npm run dev`.
+
 ## Getting Started
 
 ```bash
