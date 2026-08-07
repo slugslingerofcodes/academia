@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { PlannerData } from "./types";
-import { holidaySet, minutesOf, toDateKey } from "./schedule";
+import { minutesOf, toDateKey } from "./schedule";
 import { digestBody, hasAnythingDue, whatIsDue } from "./conflicts";
 
 const SENT_KEY = "academia:digest-sent";
@@ -13,7 +13,8 @@ const SENT_KEY = "academia:digest-sent";
  *
  * Fires at most once per day. If the app wasn't open at the configured time it
  * still fires on the next visit that day, so a late start doesn't lose the
- * reminder. Holidays are skipped, matching how class reminders behave.
+ * reminder. On a holiday it reports deadlines only — those don't move for a day
+ * off — while classes and planned work stay muted.
  */
 export function useDailyDigest(data: PlannerData, permission: string) {
   const { digestEnabled, digestTime } = data.settings;
@@ -24,8 +25,6 @@ export function useDailyDigest(data: PlannerData, permission: string) {
     const tick = () => {
       const now = new Date();
       const today = toDateKey(now);
-
-      if (holidaySet(data.holidays).has(today)) return;
 
       const nowMinutes = now.getHours() * 60 + now.getMinutes();
       if (nowMinutes < minutesOf(digestTime)) return;

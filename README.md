@@ -23,7 +23,8 @@ locally in the browser (localStorage) — no account or backend needed.
 - **Start-of-day summary** — one notification each morning listing what's due:
   deadlines first, then work sessions and how many classes. The time is
   configurable, it fires at most once a day, and it catches up if the app wasn't
-  open at that hour. Skipped on holidays, like class reminders.
+  open at that hour. On a holiday it still reports deadlines — those don't move
+  for a day off — while classes and planned work stay muted.
 - **Clash warnings** — overlapping classes are flagged with the exact
   overlapping window, both as a standing panel and live while you fill the form.
   Adding one is still allowed; it's a heads-up, not a block. Days carrying work

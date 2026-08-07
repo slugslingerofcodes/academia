@@ -127,7 +127,8 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
           </label>
           <span className="text-sm text-muted">
             One notification listing what&apos;s due that day — deadlines, work
-            sessions and how many classes. Skipped on holidays.
+            sessions and how many classes. On holidays it still reports
+            deadlines, since those don&apos;t move for a day off.
           </span>
         </div>
         <Field label="Send at">

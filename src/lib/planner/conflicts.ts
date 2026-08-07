@@ -1,5 +1,5 @@
 import { classLabel, type ClassEntry, type PlannerData } from "./types";
-import { DAY_NAMES, minutesOf, toDateKey } from "./schedule";
+import { DAY_NAMES, holidaySet, minutesOf, toDateKey } from "./schedule";
 
 /** Two half-open intervals clash when each starts before the other ends. */
 function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
@@ -99,11 +99,18 @@ export interface DueToday {
   /** Projects whose final date is today. */
   deadlines: string[];
   classes: number;
+  isHoliday: boolean;
 }
 
-/** What the daily reminder should mention for a given date. */
+/**
+ * What the daily reminder should mention for a given date.
+ *
+ * A holiday cancels classes and planned work, but not a deadline — those are
+ * externally imposed and still land that day, so they're reported either way.
+ */
 export function whatIsDue(data: PlannerData, now = new Date()): DueToday {
   const key = toDateKey(now);
+  const isHoliday = holidaySet(data.holidays).has(key);
   const sessions: { project: string; label: string }[] = [];
   const deadlines: string[] = [];
 
@@ -119,18 +126,17 @@ export function whatIsDue(data: PlannerData, now = new Date()): DueToday {
 
   const day = (now.getDay() + 6) % 7;
   return {
-    sessions,
+    sessions: isHoliday ? [] : sessions,
     deadlines,
-    classes: data.classes.filter((c) => c.day === day).length,
+    classes: isHoliday ? 0 : data.classes.filter((c) => c.day === day).length,
+    isHoliday,
   };
 }
 
 export function digestBody(due: DueToday): string {
   const parts: string[] = [];
   if (due.deadlines.length > 0) {
-    parts.push(
-      `Due today: ${due.deadlines.join(", ")}`
-    );
+    parts.push(`Due today: ${due.deadlines.join(", ")}`);
   }
   if (due.sessions.length > 0) {
     parts.push(
@@ -142,6 +148,8 @@ export function digestBody(due: DueToday): string {
   if (due.classes > 0) {
     parts.push(`${due.classes} class${due.classes === 1 ? "" : "es"}`);
   }
+  // say why the day looks empty, so a lone deadline doesn't read as an error
+  if (due.isHoliday) parts.push("Holiday — no classes");
   return parts.join(" · ");
 }
 
