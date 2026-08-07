@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { ClassEntry, Holiday } from "./types";
+import { classLabel } from "./types";
 import { holidaySet, minutesOf, toDateKey, weekdayIndex } from "./schedule";
 
 const NOTIFIED_KEY = "maniac-ledger:notified:v1";
@@ -73,7 +74,9 @@ export function useClassNotifications(classes: ClassEntry[], holidays: Holiday[]
         const delta = minutesOf(cls.start) - nowMin;
         if (delta < 0 || delta > LEAD_MINUTES) continue;
         new Notification(
-          delta === 0 ? `${cls.title} — starting now` : `${cls.title} — in ${delta} min`,
+          delta === 0
+            ? `${classLabel(cls)} — starting now`
+            : `${classLabel(cls)} — in ${delta} min`,
           {
             body: `${cls.start}–${cls.end}${cls.location ? ` · ${cls.location}` : ""}`,
             tag: `maniac-ledger-${cls.id}-${todayKey}`,

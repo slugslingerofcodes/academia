@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, CalendarDays, Clock, Pencil, Plus, X } from "lucide-react";
+import { BellRing, CalendarDays, Clock, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
-import { CLASS_HUES, type ClassEntry, type ClassHue } from "@/lib/planner/types";
+import {
+  CLASS_TYPE_LABEL,
+  classLabel,
+  type ClassEntry,
+  type ClassType,
+} from "@/lib/planner/types";
 import { LEAD_MINUTES, type ClassAlerts } from "@/lib/planner/use-class-notifications";
 import {
-  DAY_FULL,
   DAY_NAMES,
   classesOnDay,
   currentWeekDates,
@@ -17,16 +21,17 @@ import {
   holidaySet,
   nextClass,
   toDateKey,
-  uid,
 } from "@/lib/planner/schedule";
-import { EmptyState, Field, Panel, inputCls } from "./ui";
+import { EmptyState, Panel } from "./ui";
+import { ClassForm } from "./class-form";
 import { CalendarSyncPanel } from "./calendar-sync";
+import { GoogleCalendarPanel } from "./google-calendar-panel";
 
-const HUE_COLOR: Record<ClassHue, string> = {
-  accent: "var(--accent)",
-  blue: "var(--info)",
-  red: "var(--danger)",
-  mono: "var(--warn)",
+/** Colour by what kind of session it is, so the week reads at a glance. */
+const TYPE_COLOR: Record<ClassType, string> = {
+  lecture: "var(--accent)",
+  lab: "var(--info)",
+  tutorial: "var(--warn)",
 };
 
 function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAlerts }) {
@@ -65,7 +70,7 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
             {todayIsHoliday
               ? "Today is a holiday — reminders are paused."
               : upcoming
-                ? `Next up: ${upcoming.cls.title} · ${DAY_NAMES[upcoming.cls.day]} ${upcoming.cls.start} (in ${
+                ? `Next up: ${classLabel(upcoming.cls)} · ${DAY_NAMES[upcoming.cls.day]} ${upcoming.cls.start} (in ${
                     upcoming.minutesUntil >= 60
                       ? `${Math.floor(upcoming.minutesUntil / 60)}h ${upcoming.minutesUntil % 60}m`
                       : `${upcoming.minutesUntil} min`
@@ -90,115 +95,6 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
           )}
         </div>
       </div>
-    </Panel>
-  );
-}
-
-function ClassForm({
-  store,
-  editing,
-  onDone,
-}: {
-  store: PlannerStore;
-  editing: ClassEntry | null;
-  onDone: () => void;
-}) {
-  const [title, setTitle] = useState(editing?.title ?? "");
-  const [day, setDay] = useState(editing?.day ?? 0);
-  const [start, setStart] = useState(editing?.start ?? "09:00");
-  const [end, setEnd] = useState(editing?.end ?? "10:00");
-  const [location, setLocation] = useState(editing?.location ?? "");
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = () => {
-    if (!title.trim()) return setError("Please enter a class name.");
-    if (!start || !end || end <= start)
-      return setError("The end time must be after the start time.");
-    const fields = {
-      title: title.trim(),
-      day,
-      start,
-      end,
-      location: location.trim() || undefined,
-    };
-    if (editing) {
-      store.updateClass(editing.id, fields);
-      onDone();
-      return;
-    }
-    store.addClass({
-      id: uid(),
-      ...fields,
-      hue: CLASS_HUES[store.data.classes.length % CLASS_HUES.length],
-    });
-    setTitle("");
-    setLocation("");
-    setError(null);
-  };
-
-  return (
-    <Panel
-      title={editing ? `Edit class — ${editing.title}` : "Add a class"}
-      icon={editing ? <Pencil /> : <Plus />}
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Field label="Class / subject" className="lg:col-span-2">
-            <input
-              className={inputCls}
-              value={title}
-              placeholder="e.g. Math F111"
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </Field>
-          <Field label="Day">
-            <select className={inputCls} value={day} onChange={(e) => setDay(Number(e.target.value))}>
-              {DAY_FULL.map((d, i) => (
-                <option key={d} value={i}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Start time">
-            <input className={inputCls} type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-          </Field>
-          <Field label="End time">
-            <input className={inputCls} type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-          </Field>
-          <Field label="Room (optional)">
-            <input
-              className={inputCls}
-              value={location}
-              placeholder="e.g. LT-2"
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="mt-5 flex items-center justify-end gap-3">
-          {error && <span className="text-sm text-destructive">{error}</span>}
-          {editing && (
-            <Button variant="ghost" onClick={onDone}>
-              Cancel
-            </Button>
-          )}
-          <Button type="submit" className="rounded-full px-5">
-            {editing ? (
-              "Save changes"
-            ) : (
-              <>
-                <Plus data-icon="inline-start" />
-                Add to timetable
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
     </Panel>
   );
 }
@@ -269,20 +165,39 @@ function WeekGrid({
                     "group relative rounded-lg border border-border border-l-4 bg-background px-3 py-2",
                     isHoliday && "opacity-50"
                   )}
-                  style={{ borderLeftColor: HUE_COLOR[cls.hue] }}
+                  style={{ borderLeftColor: TYPE_COLOR[cls.type] }}
                 >
-                  <div className={cn("pr-5 text-sm font-medium text-foreground", isHoliday && "line-through")}>
+                  {cls.code && (
+                    <div className="text-xs font-semibold text-muted">{cls.code}</div>
+                  )}
+                  <div
+                    className={cn(
+                      "pr-5 text-sm font-medium text-foreground",
+                      isHoliday && "line-through"
+                    )}
+                  >
                     {cls.title}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted">
-                    <Clock className="size-3" />
-                    {cls.start}–{cls.end}
-                    {cls.location && ` · ${cls.location}`}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[11px] font-medium"
+                      style={{
+                        color: TYPE_COLOR[cls.type],
+                        backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
+                      }}
+                    >
+                      {CLASS_TYPE_LABEL[cls.type]}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="size-3" />
+                      {cls.start}–{cls.end}
+                    </span>
+                    {cls.location && <span>· {cls.location}</span>}
                   </div>
                   <span className="absolute top-1.5 right-1.5 hidden items-center gap-0.5 group-hover:flex">
                     <button
                       type="button"
-                      aria-label={`Edit ${cls.title}`}
+                      aria-label={`Edit ${classLabel(cls)}`}
                       className="rounded p-0.5 text-muted hover:bg-accent-faint hover:text-accent"
                       onClick={() => onEdit(cls)}
                     >
@@ -290,7 +205,7 @@ function WeekGrid({
                     </button>
                     <button
                       type="button"
-                      aria-label={`Remove ${cls.title}`}
+                      aria-label={`Remove ${classLabel(cls)}`}
                       className="rounded p-0.5 text-muted hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => store.removeClass(cls.id)}
                     >
@@ -328,6 +243,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
           document.getElementById("class-form")?.scrollIntoView({ behavior: "smooth" });
         }}
       />
+      <GoogleCalendarPanel store={store} />
       <CalendarSyncPanel store={store} />
     </div>
   );

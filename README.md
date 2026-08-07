@@ -8,12 +8,17 @@ locally in the browser (localStorage) — no account or backend needed.
 - **Tasks & Projects** — start a task or project over any period and Academia
   generates a timetable: work sessions spread evenly across the dates, skipping
   weekends (optional) and marked holidays. Check sessions off to track progress.
-- **Weekly Timetable** — add your classes (subject, day, time, room) and see the
-  current week at a glance, with today highlighted.
+- **Weekly Timetable** — add a subject once with its code, name and kind
+  (lecture / lab / tutorial), ticking every day it meets and giving each day its
+  own times and room. The week view colours sessions by kind, with today
+  highlighted.
 - **Class reminders** — browser notifications fire 10 minutes before each class.
   Keep the app open in a tab; reminders are deduped per class per day.
 - **Holidays** — mark any date as a holiday. Reminders pause on that day, the
   week view flags it, and newly generated timetables skip it.
+- **Google Calendar sync** — write classes straight into Google Calendar as
+  weekly repeating events with 10-minute reminders, skipping holidays. Needs a
+  Google OAuth client ID (see below); until one is set, use the export below.
 - **Google Calendar export** — download your timetable as a standard `.ics`
   file and import it into Google Calendar once. Google then syncs it to your
   phone and laptop, and each class carries a 10-minute reminder as a native
@@ -27,6 +32,22 @@ locally in the browser (localStorage) — no account or backend needed.
   you can come back and edit any time, and "Download PDF" prints just the resume.
 
 Tasks, classes, holidays and notes all support full create / edit / delete.
+
+## Google Calendar sync setup
+
+Direct sync uses Google Identity Services' browser token flow, so it needs only
+a **public OAuth client ID** — no client secret, and no backend.
+
+1. In the [Google Cloud console](https://console.cloud.google.com), create a
+   project and enable the **Google Calendar API**.
+2. Configure the OAuth consent screen (External) and add yourself as a test user.
+3. Create an **OAuth client ID** of type *Web application*, listing your
+   deployed URL as an authorised JavaScript origin.
+4. Set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in your Vercel environment variables and
+   redeploy.
+
+The client ID is public by design and safe to expose. Without it, the sync panel
+explains the setup and the `.ics` export continues to work.
 
 ## Install it on your phone
 

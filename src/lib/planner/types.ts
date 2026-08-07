@@ -22,9 +22,27 @@ export interface Project {
 export const CLASS_HUES = ["accent", "blue", "red", "mono"] as const;
 export type ClassHue = (typeof CLASS_HUES)[number];
 
+export const CLASS_TYPES = ["lecture", "lab", "tutorial"] as const;
+export type ClassType = (typeof CLASS_TYPES)[number];
+
+export const CLASS_TYPE_LABEL: Record<ClassType, string> = {
+  lecture: "Lecture",
+  lab: "Lab",
+  tutorial: "Tutorial",
+};
+
+/**
+ * One meeting of a subject — a single day + time slot. A subject that meets
+ * several times a week is several entries sharing the same code, title and
+ * type, which keeps the week grid, reminders and calendar export simple.
+ */
 export interface ClassEntry {
   id: string;
+  /** Subject code, e.g. "MATH F111". */
+  code?: string;
+  /** Subject name. */
   title: string;
+  type: ClassType;
   /** 0 = Monday … 6 = Sunday. */
   day: number;
   /** 24h "HH:MM". */
@@ -32,6 +50,11 @@ export interface ClassEntry {
   end: string;
   location?: string;
   hue: ClassHue;
+}
+
+/** How a class is labelled in the UI, calendar events and reminders. */
+export function classLabel(cls: ClassEntry): string {
+  return cls.code ? `${cls.code} — ${cls.title}` : cls.title;
 }
 
 export interface Holiday {

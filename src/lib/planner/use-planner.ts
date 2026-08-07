@@ -28,7 +28,11 @@ function loadData(): PlannerData {
       const parsed = JSON.parse(raw) as Partial<PlannerData>;
       cache = {
         projects: parsed.projects ?? [],
-        classes: parsed.classes ?? [],
+        // classes saved before subject code / type existed default to lectures
+        classes: (parsed.classes ?? []).map((c) => ({
+          ...c,
+          type: c.type ?? "lecture",
+        })),
         holidays: parsed.holidays ?? [],
         resume: { ...EMPTY_RESUME, ...parsed.resume },
         notes: parsed.notes ?? [],
@@ -86,6 +90,26 @@ function toggleSession(projectId: string, sessionId: string) {
 
 function addClass(c: ClassEntry) {
   update((d) => ({ ...d, classes: [...d.classes, c] }));
+}
+
+/** Add every meeting of a subject in one go. */
+function addClasses(list: ClassEntry[]) {
+  update((d) => ({ ...d, classes: [...d.classes, ...list] }));
+}
+
+/** Remove every meeting sharing a subject's code + title + type. */
+function removeSubject(sample: ClassEntry) {
+  update((d) => ({
+    ...d,
+    classes: d.classes.filter(
+      (c) =>
+        !(
+          (c.code ?? "") === (sample.code ?? "") &&
+          c.title === sample.title &&
+          c.type === sample.type
+        )
+    ),
+  }));
 }
 
 function removeClass(id: string) {
@@ -159,7 +183,9 @@ export function usePlanner() {
     updateProject,
     toggleSession,
     addClass,
+    addClasses,
     removeClass,
+    removeSubject,
     updateClass,
     addHoliday,
     removeHoliday,
