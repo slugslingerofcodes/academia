@@ -10,6 +10,7 @@ import { TimetableTab } from "./timetable-tab";
 import { HolidaysTab } from "./holidays-tab";
 import { ResumeTab } from "./resume-tab";
 import { ThinkTab } from "./think-tab";
+import { AcademiaMark } from "./academia-mark";
 
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
@@ -30,13 +31,25 @@ export function PlannerApp() {
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 md:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 pt-8 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-            Ledger
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Track tasks &amp; projects, plan your week, never miss a class.
-          </p>
+        <div className="flex items-center gap-4">
+          {/* the real crest is layered over the placeholder as a background
+              image, so adding public/logo.png replaces it with no code change */}
+          <span className="relative size-14 shrink-0 md:size-16">
+            <AcademiaMark className="size-full" />
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-xl bg-contain bg-center bg-no-repeat"
+              style={{ backgroundImage: "url(/logo.png)" }}
+            />
+          </span>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              Academia
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              Track tasks &amp; projects, plan your week, never miss a class.
+            </p>
+          </div>
         </div>
         <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted sm:block">
           Saved locally in your browser

@@ -20,6 +20,7 @@ import {
   uid,
 } from "@/lib/planner/schedule";
 import { EmptyState, Field, Panel, inputCls } from "./ui";
+import { CalendarSyncPanel } from "./calendar-sync";
 
 const HUE_COLOR: Record<ClassHue, string> = {
   accent: "var(--accent)",
@@ -327,6 +328,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
           document.getElementById("class-form")?.scrollIntoView({ behavior: "smooth" });
         }}
       />
+      <CalendarSyncPanel store={store} />
     </div>
   );
 }

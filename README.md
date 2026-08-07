@@ -1,11 +1,11 @@
-# Ledger — Tasks, Timetable & Holidays
+# Academia — Tasks, Timetable & Holidays
 
 A student planner built with [Next.js](https://nextjs.org). Everything is stored
 locally in the browser (localStorage) — no account or backend needed.
 
 ## Features
 
-- **Tasks & Projects** — start a task or project over any period and Ledger
+- **Tasks & Projects** — start a task or project over any period and Academia
   generates a timetable: work sessions spread evenly across the dates, skipping
   weekends (optional) and marked holidays. Check sessions off to track progress.
 - **Weekly Timetable** — add your classes (subject, day, time, room) and see the
@@ -14,6 +14,12 @@ locally in the browser (localStorage) — no account or backend needed.
   Keep the app open in a tab; reminders are deduped per class per day.
 - **Holidays** — mark any date as a holiday. Reminders pause on that day, the
   week view flags it, and newly generated timetables skip it.
+- **Google Calendar export** — download your timetable as a standard `.ics`
+  file and import it into Google Calendar once. Google then syncs it to your
+  phone and laptop, and each class carries a 10-minute reminder as a native
+  calendar alarm, so alerts arrive even when Academia isn't open. Classes are
+  exported as weekly recurring events, and marked holidays are excluded from
+  them automatically. It's a one-way snapshot — re-export after changes.
 - **Think** — capture small notes with a title and body, search them, and edit
   or delete them any time.
 - **Resume builder** — fill in your details, education, experience, projects and

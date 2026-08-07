@@ -12,6 +12,7 @@ import {
   type ResumeData,
 } from "./types";
 
+/** Predates the rename to Academia — kept as-is so existing saved data loads. */
 const STORAGE_KEY = "maniac-ledger:planner:v1";
 
 /* Module-level store: localStorage-backed, read lazily on the client. */

@@ -160,7 +160,7 @@ function ProjectsForm({ resume, set }: { resume: ResumeData; set: (p: Partial<Re
         {resume.projects.map((p) => (
           <EntryShell key={p.id} onRemove={() => set({ projects: resume.projects.filter((x) => x.id !== p.id) })}>
             <Field label="Project name">
-              <input className={inputCls} value={p.name} placeholder="e.g. Ledger planner"
+              <input className={inputCls} value={p.name} placeholder="e.g. Academia planner"
                 onChange={(ev) => patch(p.id, { name: ev.target.value })} />
             </Field>
             <Field label="Tech used">

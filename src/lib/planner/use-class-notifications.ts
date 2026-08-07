@@ -42,7 +42,7 @@ export function useClassNotifications(classes: ClassEntry[], holidays: Holiday[]
 
   const test = useCallback(() => {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
-    new Notification("MANIAC LEDGER — test alert", {
+    new Notification("Academia — test reminder", {
       body: `Class reminders look like this, ${LEAD_MINUTES} min before start.`,
     });
   }, []);

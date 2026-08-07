@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Ledger — Tasks, Timetable & Holidays",
+  title: "Academia — Tasks, Timetable & Holidays",
   description:
     "Track tasks and projects, generate work timetables over any period, manage your weekly class schedule with 10-minute reminders, mark holidays, and build an editable resume.",
 };
