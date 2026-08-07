@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, CalendarDays, Clock, LayoutGrid, List, Pencil, X } from "lucide-react";
+import {
+  BellRing,
+  CalendarDays,
+  Clock,
+  LayoutGrid,
+  List,
+  Pencil,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +31,12 @@ import {
   nextClass,
   toDateKey,
 } from "@/lib/planner/schedule";
-import { EmptyState, Panel } from "./ui";
+import {
+  describeConflict,
+  findClassConflicts,
+  findSessionPileups,
+} from "@/lib/planner/conflicts";
+import { EmptyState, Field, Panel, inputCls } from "./ui";
 import { ClassForm } from "./class-form";
 import { TimetableGrid } from "./timetable-grid";
 import { CalendarImportPanel } from "./calendar-import";
@@ -97,7 +111,72 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
           )}
         </div>
       </div>
+
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-border pt-4">
+        <div className="flex flex-col gap-1">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--accent)]"
+              checked={store.data.settings.digestEnabled}
+              onChange={(e) =>
+                store.updateSettings({ digestEnabled: e.target.checked })
+              }
+            />
+            Start-of-day summary
+          </label>
+          <span className="text-sm text-muted">
+            One notification listing what&apos;s due that day — deadlines, work
+            sessions and how many classes. Skipped on holidays.
+          </span>
+        </div>
+        <Field label="Send at">
+          <input
+            className={cn(inputCls, "w-32")}
+            type="time"
+            value={store.data.settings.digestTime}
+            disabled={!store.data.settings.digestEnabled}
+            onChange={(e) => store.updateSettings({ digestTime: e.target.value })}
+          />
+        </Field>
+      </div>
     </Panel>
+  );
+}
+
+/** Surfaces timetable clashes and days carrying several projects at once. */
+function ConflictPanel({ store }: { store: PlannerStore }) {
+  const conflicts = findClassConflicts(store.data.classes);
+  const pileups = findSessionPileups(store.data);
+  if (conflicts.length === 0 && pileups.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+      <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+        <TriangleAlert className="size-4" />
+        {conflicts.length > 0
+          ? `${conflicts.length} timetable clash${conflicts.length === 1 ? "" : "es"}`
+          : "Busy days ahead"}
+      </p>
+
+      {conflicts.length > 0 && (
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-foreground/85">
+          {conflicts.map((c, i) => (
+            <li key={i}>{describeConflict(c)}</li>
+          ))}
+        </ul>
+      )}
+
+      {pileups.length > 0 && (
+        <p className="mt-2 text-sm text-muted">
+          {pileups.length === 1
+            ? "1 day carries"
+            : `${pileups.length} days carry`}{" "}
+          work sessions from more than one project — first is{" "}
+          {formatDateKey(pileups[0].date)} ({pileups[0].projects.join(", ")}).
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -131,7 +210,7 @@ function WeekGrid({
           <div
             key={dateKey}
             className={cn(
-              "flex min-h-40 flex-col rounded-2xl border bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.3)]",
+              "flex min-h-40 flex-col rounded-2xl border bg-card p-3 shadow-[var(--shadow-card)]",
               isToday ? "border-accent ring-2 ring-ring/30" : "border-border"
             )}
           >
@@ -247,6 +326,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
   return (
     <div className="flex flex-col gap-5">
       <AlertsPanel store={store} alerts={alerts} />
+      <ConflictPanel store={store} />
 
       {hasClasses && (
         <div className="flex items-center justify-between gap-3">
@@ -260,7 +340,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   view === v.id
-                    ? "bg-card text-accent shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                    ? "bg-card text-accent shadow-[var(--shadow-raised)]"
                     : "text-muted hover:text-foreground"
                 )}
               >

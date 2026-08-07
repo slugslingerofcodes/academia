@@ -20,6 +20,16 @@ locally in the browser (localStorage) — no account or backend needed.
   classes already in your timetable aren't duplicated.
 - **Class reminders** — browser notifications fire 10 minutes before each class.
   Keep the app open in a tab; reminders are deduped per class per day.
+- **Start-of-day summary** — one notification each morning listing what's due:
+  deadlines first, then work sessions and how many classes. The time is
+  configurable, it fires at most once a day, and it catches up if the app wasn't
+  open at that hour. Skipped on holidays, like class reminders.
+- **Clash warnings** — overlapping classes are flagged with the exact
+  overlapping window, both as a standing panel and live while you fill the form.
+  Adding one is still allowed; it's a heads-up, not a block. Days carrying work
+  sessions from several projects are flagged too.
+- **Light and dark** — a Light / Dark / System toggle in the header. The saved
+  choice is applied before first paint, so there's no flash of the wrong theme.
 - **Holidays** — mark any date as a holiday. Reminders pause on that day, the
   week view flags it, and newly generated timetables skip it.
 - **Google Calendar sync** — write classes straight into Google Calendar as

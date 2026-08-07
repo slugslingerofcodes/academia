@@ -2,12 +2,14 @@
 
 import { useSyncExternalStore } from "react";
 import {
+  DEFAULT_SETTINGS,
   EMPTY_DATA,
   EMPTY_RESUME,
   type ClassEntry,
   type Holiday,
   type Note,
   type PlannerData,
+  type PlannerSettings,
   type Project,
   type ResumeData,
 } from "./types";
@@ -36,6 +38,7 @@ function loadData(): PlannerData {
         holidays: parsed.holidays ?? [],
         resume: { ...EMPTY_RESUME, ...parsed.resume },
         notes: parsed.notes ?? [],
+        settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
       };
       return cache;
     }
@@ -149,6 +152,10 @@ function setResume(resume: ResumeData) {
   update((d) => ({ ...d, resume }));
 }
 
+function updateSettings(patch: Partial<PlannerSettings>) {
+  update((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
+}
+
 function addNote(n: Note) {
   update((d) => ({ ...d, notes: [n, ...d.notes] }));
 }
@@ -191,6 +198,7 @@ export function usePlanner() {
     removeHoliday,
     updateHoliday,
     setResume,
+    updateSettings,
     addNote,
     updateNote,
     removeNote,

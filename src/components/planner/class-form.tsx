@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
@@ -13,6 +13,8 @@ import {
   type ClassType,
 } from "@/lib/planner/types";
 import { DAY_NAMES, uid } from "@/lib/planner/schedule";
+import { conflictsForSlot } from "@/lib/planner/conflicts";
+import { classLabel } from "@/lib/planner/types";
 import { Field, Panel, inputCls } from "./ui";
 
 /** A day the subject meets, with its own times. */
@@ -71,6 +73,16 @@ export function ClassForm({
   const chosen = slots
     .map((s, day) => ({ ...s, day }))
     .filter((s) => s.selected);
+
+  // live clash check against what's already scheduled — a warning, not a block,
+  // since an intentional overlap is sometimes legitimate
+  const clashes = chosen.flatMap((s) =>
+    s.end > s.start
+      ? conflictsForSlot(store.data.classes, s, editing?.id).map(
+          (other) => `${DAY_NAMES[s.day]} ${s.start}–${s.end} overlaps ${classLabel(other)} (${other.start}–${other.end})`
+        )
+      : []
+  );
 
   const submit = () => {
     if (!title.trim() && !code.trim())
@@ -241,6 +253,23 @@ export function ClassForm({
             })}
           </div>
         </fieldset>
+
+        {clashes.length > 0 && (
+          <div className="mt-4 rounded-xl border border-warn/40 bg-warn/10 p-3">
+            <p className="flex items-center gap-2 text-sm font-medium text-warn">
+              <TriangleAlert className="size-4" />
+              Clashes with what&apos;s already scheduled
+            </p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-foreground/85">
+              {clashes.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+            <p className="mt-1 text-xs text-muted">
+              You can still add it — this is just a heads-up.
+            </p>
+          </div>
+        )}
 
         <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
           {error && <span className="text-sm text-destructive">{error}</span>}

@@ -76,7 +76,7 @@ export function TimetableGrid({
   );
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)]">
       <div className="min-w-[720px]">
         {/* day headings */}
         <div className="flex">
@@ -194,7 +194,8 @@ export function TimetableGrid({
                           </>
                         )}
 
-                        <span className="absolute top-0.5 right-0.5 hidden gap-0.5 group-hover:flex">
+                        {/* always visible — touch screens have no hover */}
+                        <span className="absolute top-0.5 right-0.5 flex gap-0.5">
                           <button
                             type="button"
                             aria-label={`Edit ${classLabel(cls)}`}

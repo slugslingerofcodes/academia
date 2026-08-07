@@ -10,9 +10,11 @@ import { TimetableTab } from "./timetable-tab";
 import { HolidaysTab } from "./holidays-tab";
 import { ResumeTab } from "./resume-tab";
 import { ThinkTab } from "./think-tab";
+import { useDailyDigest } from "@/lib/planner/use-daily-digest";
 import { AcademiaMark } from "./academia-mark";
 import { InstallPrompt } from "./install-prompt";
 import { ServiceWorkerRegistrar } from "./service-worker";
+import { ThemeToggle } from "./theme-toggle";
 
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
@@ -28,6 +30,8 @@ export function PlannerApp() {
   const store = usePlanner();
   // mounted at the top level so class alerts keep firing on every tab
   const alerts = useClassNotifications(store.data.classes, store.data.holidays);
+  // start-of-day summary, sharing the same notification permission
+  useDailyDigest(store.data, alerts.permission);
   const [tab, setTab] = useState<TabId>("missions");
 
   return (
@@ -53,9 +57,12 @@ export function PlannerApp() {
             </p>
           </div>
         </div>
-        <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted sm:block">
-          Saved locally in your browser
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted sm:block">
+            Saved locally in your browser
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <ServiceWorkerRegistrar />
@@ -70,7 +77,7 @@ export function PlannerApp() {
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
               tab === t.id
-                ? "bg-card text-accent shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                ? "bg-card text-accent shadow-[var(--shadow-raised)]"
                 : "text-muted hover:text-foreground"
             )}
           >

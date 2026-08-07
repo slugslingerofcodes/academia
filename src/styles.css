@@ -1,10 +1,41 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/*  Design tokens — single source of truth. Never hardcode colors in  */
-/*  components; use the Tailwind color names mapped below.            */
+/*  Design tokens. Light is the base; dark is applied either by the    */
+/*  user's explicit choice (data-theme) or by their OS preference when */
+/*  they haven't chosen. Never hardcode colours in components.         */
 /* ------------------------------------------------------------------ */
 :root {
+  --background: #f6f7fb;
+  --foreground: #1c2130;
+  --muted: #64708a;
+  --accent: #4f46e5;
+  --accent-contrast: #ffffff;
+  --border: #e4e7ef;
+
+  --card: #ffffff;
+  --secondary: #edeff6;
+  --input: #d9dde9;
+  --accent-faint: rgba(79, 70, 229, 0.07);
+  --ring: rgba(79, 70, 229, 0.4);
+  --danger: #e11d48;
+  --info: #0284c7;
+  --warn: #b45309;
+
+  --shadow-card: 0 1px 3px rgba(28, 33, 48, 0.08);
+  --shadow-raised: 0 1px 3px rgba(28, 33, 48, 0.14);
+
+  /* the resume preview is a paper document — deliberately fixed light,
+     independent of the app theme, so it matches what gets printed */
+  --paper: #ffffff;
+  --paper-ink: #1b1e28;
+  --paper-muted: #5b6272;
+  --paper-line: #e5e7ee;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
   --background: #0e1015;
   --foreground: #e6e8ee;
   --muted: #9aa3b5;
@@ -12,7 +43,6 @@
   --accent-contrast: #10121a;
   --border: #262a35;
 
-  /* derived / secondary tokens */
   --card: #161922;
   --secondary: #1f232e;
   --input: #353b4b;
@@ -22,12 +52,36 @@
   --info: #38bdf8;
   --warn: #fbbf24;
 
-  /* the resume preview is a paper document — deliberately fixed light,
-     independent of the app theme, so it matches what gets printed */
-  --paper: #ffffff;
-  --paper-ink: #1b1e28;
-  --paper-muted: #5b6272;
-  --paper-line: #e5e7ee;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+/* follow the OS only while the user hasn't picked a theme themselves */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --background: #0e1015;
+    --foreground: #e6e8ee;
+    --muted: #9aa3b5;
+    --accent: #8b93ff;
+    --accent-contrast: #10121a;
+    --border: #262a35;
+
+    --card: #161922;
+    --secondary: #1f232e;
+    --input: #353b4b;
+    --accent-faint: rgba(139, 147, 255, 0.1);
+    --ring: rgba(139, 147, 255, 0.45);
+    --danger: #f4657f;
+    --info: #38bdf8;
+    --warn: #fbbf24;
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -62,7 +116,6 @@
 /* ------------------------------------------------------------------ */
 html {
   background: var(--background);
-  color-scheme: dark;
 }
 
 body {
@@ -74,15 +127,6 @@ body {
     env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-/* installed-to-home-screen: suppress the rubber-band scroll so it reads as an
-   app rather than a web page */
-@media (display-mode: standalone) {
-  html,
-  body {
-    overscroll-behavior-y: none;
-  }
-}
-
 ::selection {
   background: var(--accent);
   color: var(--accent-contrast);
@@ -92,6 +136,15 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--input) transparent;
+}
+
+/* installed-to-home-screen: suppress the rubber-band scroll so it reads as an
+   app rather than a web page */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 /* ------------------------------------------------------------------ */

@@ -126,12 +126,25 @@ export interface Note {
   updatedAt: number;
 }
 
+export interface PlannerSettings {
+  /** Start-of-day summary of what's due. */
+  digestEnabled: boolean;
+  /** 24h "HH:MM" — when that summary fires. */
+  digestTime: string;
+}
+
+export const DEFAULT_SETTINGS: PlannerSettings = {
+  digestEnabled: true,
+  digestTime: "08:00",
+};
+
 export interface PlannerData {
   projects: Project[];
   classes: ClassEntry[];
   holidays: Holiday[];
   resume: ResumeData;
   notes: Note[];
+  settings: PlannerSettings;
 }
 
 export const EMPTY_DATA: PlannerData = {
@@ -140,4 +153,5 @@ export const EMPTY_DATA: PlannerData = {
   holidays: [],
   resume: EMPTY_RESUME,
   notes: [],
+  settings: DEFAULT_SETTINGS,
 };
