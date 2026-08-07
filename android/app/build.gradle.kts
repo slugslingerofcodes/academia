@@ -49,4 +49,7 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // Trusted Web Activity: renders the site in Chrome itself, so the app
+    // shares storage with the installed PWA instead of an isolated WebView
+    implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
 }

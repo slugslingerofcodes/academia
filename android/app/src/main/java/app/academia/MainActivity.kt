@@ -1,96 +1,73 @@
 package app.academia
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.androidbrowserhelper.trusted.LauncherActivity
 
 /**
- * Hosts the Academia web app in a WebView and manages the floating bubble.
+ * Launches Academia as a Trusted Web Activity and manages the floating bubble.
  *
- * The web app itself is unchanged — this shell exists purely to provide the
- * one capability the browser cannot: drawing over other apps.
+ * A TWA renders the site inside Chrome rather than an in-app WebView, which
+ * matters here: WebView storage is sandboxed per-app, so a WebView build would
+ * start with an empty planner and never see data from the PWA on the home
+ * screen. Running in Chrome means both share exactly the same localStorage.
+ *
+ * Chrome only grants that (and drops the URL bar) once it has verified
+ * /.well-known/assetlinks.json on the site against this app's signing
+ * certificate.
  */
-class MainActivity : AppCompatActivity() {
+class MainActivity : LauncherActivity() {
 
-    private lateinit var webView: WebView
-
-    private val overlayPermission =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (canDrawOverlays()) {
-                startOverlay()
-            } else {
-                Toast.makeText(this, R.string.overlay_denied, Toast.LENGTH_LONG).show()
-            }
-        }
-
-    private val notificationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* optional */ }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true   // the planner stores data in localStorage
-            webViewClient = WebViewClient()
-            loadUrl(BuildConfig.APP_URL)
-        }
-        setContentView(webView)
-
-        askForNotifications()
-        ensureOverlay()
-    }
-
-    private fun askForNotifications() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val granted = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    private companion object {
+        const val REQUEST_OVERLAY = 1001
     }
 
     private fun canDrawOverlays(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
 
     /**
-     * "Draw over other apps" cannot be granted by a normal runtime prompt —
-     * Android requires the user to flip it in Settings, so send them there.
+     * Hold the web app back on the very first run so the overlay prompt isn't
+     * buried behind Chrome. Afterwards it opens straight away.
      */
-    private fun ensureOverlay() {
+    override fun shouldLaunchImmediately(): Boolean = canDrawOverlays()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         if (canDrawOverlays()) {
-            startOverlay()
+            startOverlayIfAllowed()
             return
         }
-        Toast.makeText(this, R.string.overlay_needed, Toast.LENGTH_LONG).show()
-        overlayPermission.launch(
+
+        // "Draw over other apps" can't be granted by a runtime prompt — Android
+        // requires the user to flip it in Settings. LauncherActivity extends a
+        // plain Activity, so this uses the classic result API.
+        @Suppress("DEPRECATION")
+        startActivityForResult(
             Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
-            )
+            ),
+            REQUEST_OVERLAY
         )
     }
 
-    private fun startOverlay() {
+    @Deprecated("Classic result API; LauncherActivity is not a ComponentActivity")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_OVERLAY) return
+        // carry on into the web app whichever way the user answered
+        startOverlayIfAllowed()
+        launchTwa()
+    }
+
+    private fun startOverlayIfAllowed() {
+        if (!canDrawOverlays()) return
         ContextCompat.startForegroundService(this, Intent(this, OverlayService::class.java))
-    }
-
-    override fun onDestroy() {
-        webView.destroy()
-        super.onDestroy()
-    }
-
-    @Deprecated("Handled for back navigation inside the web app")
-    override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else @Suppress("DEPRECATION") super.onBackPressed()
     }
 }
