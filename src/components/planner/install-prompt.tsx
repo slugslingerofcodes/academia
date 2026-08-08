@@ -107,7 +107,11 @@ export function InstallPrompt() {
   if (installed || dismissed || (!ios && !deferred)) return null;
 
   return (
-    <div className="relative mb-6 rounded-2xl border border-accent/40 bg-accent-faint p-4 pr-10">
+    /* Fixed rather than in-flow: this appears only after hydration, and as a
+       normal block it pushed the whole page down — the app's entire layout
+       shift came from here. Floating it costs nothing above the fold. */
+    <div className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-md rounded-2xl border border-accent/40 bg-card p-4 pr-10 shadow-[0_8px_24px_rgba(0,0,0,0.28)] sm:inset-x-auto sm:right-4"
+      style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
       <div className="flex items-start gap-3">
         <Smartphone className="mt-0.5 size-5 shrink-0 text-accent" />
         <div className="min-w-0">
