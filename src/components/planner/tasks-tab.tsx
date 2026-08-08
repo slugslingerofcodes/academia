@@ -37,6 +37,8 @@ function NewEntryForm({ store }: { store: PlannerStore }) {
       count,
       holidays: store.data.holidays,
       skipWeekends,
+      // steer sessions onto lighter days, in gaps between classes
+      classes: store.data.classes,
     });
     if (sessions.length === 0)
       return setError("No available days — the whole period is holidays or weekends.");
@@ -138,8 +140,9 @@ function NewEntryForm({ store }: { store: PlannerStore }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-muted">
-          Sessions are spread evenly across the period — marked holidays are skipped
-          automatically.
+          Sessions spread across the period, skipping marked holidays. They land
+          on your lighter teaching days, in the largest gap between that
+          day&apos;s classes.
         </p>
       </form>
     </Panel>
@@ -282,6 +285,7 @@ function ProjectCard({ project, store }: { project: Project; store: PlannerStore
                 </span>
                 <span className={cn("block text-xs", overdue ? "text-destructive" : "text-muted")}>
                   {formatDateKey(s.date)}
+                  {s.start && s.end && ` · ${s.start}–${s.end}`}
                   {isToday && " · Today"}
                   {overdue && " · Overdue"}
                 </span>

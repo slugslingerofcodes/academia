@@ -6,6 +6,9 @@ export interface WorkSession {
   date: string;
   label: string;
   done: boolean;
+  /** Suggested free window that day, picked around your classes ("HH:MM"). */
+  start?: string;
+  end?: string;
 }
 
 export interface Project {

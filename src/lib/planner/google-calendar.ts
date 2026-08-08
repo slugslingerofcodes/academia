@@ -84,7 +84,8 @@ function loadGis(): Promise<void> {
  * calendar sync never requests access to Drive, and vice versa.
  */
 export async function requestAccessToken(
-  scope: string = CALENDAR_SCOPE
+  scope: string = CALENDAR_SCOPE,
+  options: { silent?: boolean } = {}
 ): Promise<string> {
   if (!isConfigured()) throw new Error("Google client ID is not configured.");
   await loadGis();
@@ -103,7 +104,9 @@ export async function requestAccessToken(
         resolve(res.access_token);
       },
     });
-    client.requestAccessToken();
+    // prompt:'' reuses an existing grant without any UI; it fails rather than
+    // showing a popup, which is what background syncing wants
+    client.requestAccessToken(options.silent ? { prompt: "" } : undefined);
   });
 }
 

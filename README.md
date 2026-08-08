@@ -5,6 +5,9 @@ locally in the browser (localStorage) — no account or backend needed.
 
 ## Features
 
+- **Class-aware scheduling** — generated work sessions steer around your
+  timetable: within each evenly-spaced slot they pick your lightest teaching
+  day, and take the largest class-free window on it.
 - **Tasks & Projects** — start a task or project over any period and Academia
   generates a timetable: work sessions spread evenly across the dates, skipping
   weekends (optional) and marked holidays. Check sessions off to track progress.
@@ -61,6 +64,18 @@ each keep their own copy — there is no server holding a shared account. The
 - **Export / import a backup** file to carry data across. Import offers *merge*
   (keep both sides, matched by id, so importing twice changes nothing) or
   *replace*. Exporting is also the only guard against clearing your browser data.
+
+### Signing in
+
+**Sign in with Google** on the Devices tab and your planner follows the account
+to every device you sign in on. There is deliberately no email/password signup:
+that would mean storing password hashes and running a database, and a
+hand-rolled auth layer on a static site is a liability. The account *is* your
+Google account, and the data lives in your own Drive rather than on a server.
+
+Once signed in, the planner pulls on load and pushes a few seconds after any
+change. Every write is a merge, so a device that was offline contributes its
+work instead of being overwritten.
 
 ### Automatic sync
 

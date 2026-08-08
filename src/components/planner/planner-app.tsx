@@ -18,6 +18,7 @@ import { HolidaysTab } from "./holidays-tab";
 import { ResumeTab } from "./resume-tab";
 import { ThinkTab } from "./think-tab";
 import { useDailyDigest } from "@/lib/planner/use-daily-digest";
+import { useAccountSync } from "@/lib/planner/use-account-sync";
 import { AcademiaMark } from "./academia-mark";
 import { InstallPrompt } from "./install-prompt";
 import { ServiceWorkerRegistrar } from "./service-worker";
@@ -41,6 +42,8 @@ export function PlannerApp() {
   const alerts = useClassNotifications(store.data.classes, store.data.holidays);
   // start-of-day summary, sharing the same notification permission
   useDailyDigest(store.data, alerts.permission);
+  // signed-in account + background sync with the copy held in Drive
+  const sync = useAccountSync(store.data, store.replaceAll);
   const [tab, setTab] = useState<TabId>("missions");
 
   return (
@@ -105,7 +108,7 @@ export function PlannerApp() {
           {tab === "holidays" && <HolidaysTab store={store} />}
           {tab === "think" && <ThinkTab store={store} />}
           {tab === "resume" && <ResumeTab store={store} />}
-          {tab === "devices" && <DevicesTab store={store} />}
+          {tab === "devices" && <DevicesTab store={store} sync={sync} />}
         </>
       )}
     </div>

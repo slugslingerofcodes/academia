@@ -112,9 +112,14 @@ function countRecords(d: PlannerData): number {
  * Run one full sync. Returns the merged planner for the caller to store.
  * Requests the Drive scope only — calendar access is never involved.
  */
-export async function syncWithDrive(local: PlannerData): Promise<SyncOutcome> {
+export async function syncWithDrive(
+  local: PlannerData,
+  existingToken?: string
+): Promise<SyncOutcome> {
   if (!isConfigured()) throw new Error("Google client ID is not configured.");
-  const token = await requestAccessToken(DRIVE_SCOPE);
+  // reuse the signed-in account's token when there is one, so syncing doesn't
+  // throw a second consent popup at someone who already signed in
+  const token = existingToken ?? (await requestAccessToken(DRIVE_SCOPE));
 
   const existing = await findFile(token);
   const remote = existing ? await downloadFile(token, existing.id) : null;

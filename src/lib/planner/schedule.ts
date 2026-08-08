@@ -71,10 +71,59 @@ export function holidaySet(holidays: Holiday[]): Set<string> {
 
 /* ---- project timetable generation ---- */
 
+/** Study window a suggested session is allowed to fall in. */
+const STUDY_START = 8 * 60;
+const STUDY_END = 22 * 60;
+const MIN_SESSION = 45;
+const MAX_SESSION = 120;
+
+/** Total minutes of class on a given weekday. */
+export function classLoadOn(classes: ClassEntry[], day: number): number {
+  return classes
+    .filter((c) => c.day === day)
+    .reduce((sum, c) => sum + (minutesOf(c.end) - minutesOf(c.start)), 0);
+}
+
 /**
- * Spread `count` work sessions evenly across [start, end], skipping holidays
- * (and weekends when requested). Returns fewer sessions than asked when the
- * period doesn't have enough eligible days.
+ * The longest stretch of a weekday with no class, inside the study window.
+ * Returns null when the day has no usable gap.
+ */
+export function freeWindowOn(
+  classes: ClassEntry[],
+  day: number
+): { start: string; end: string } | null {
+  const busy = classesOnDay(classes, day).map((c) => ({
+    from: minutesOf(c.start),
+    to: minutesOf(c.end),
+  }));
+
+  let bestFrom = -1;
+  let bestLen = 0;
+  let cursor = STUDY_START;
+  for (const slot of [...busy, { from: STUDY_END, to: STUDY_END }]) {
+    const gap = Math.min(slot.from, STUDY_END) - cursor;
+    if (gap > bestLen) {
+      bestLen = gap;
+      bestFrom = cursor;
+    }
+    cursor = Math.max(cursor, Math.min(slot.to, STUDY_END));
+  }
+
+  if (bestFrom < 0 || bestLen < MIN_SESSION) return null;
+  const length = Math.min(bestLen, MAX_SESSION);
+  const fmt = (m: number) =>
+    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  return { start: fmt(bestFrom), end: fmt(bestFrom + length) };
+}
+
+/**
+ * Spread `count` work sessions across [start, end], skipping holidays (and
+ * weekends when requested), and steering around the class timetable.
+ *
+ * The period is split into one bucket per session so sessions stay evenly
+ * spaced, then within each bucket the lightest teaching day is chosen. Each
+ * session also takes the largest class-free window on that day, so it lands in
+ * time that is genuinely free rather than clashing with a lecture.
  */
 export function generateSessions(opts: {
   start: string;
@@ -82,9 +131,11 @@ export function generateSessions(opts: {
   count: number;
   holidays: Holiday[];
   skipWeekends: boolean;
+  classes?: ClassEntry[];
 }): WorkSession[] {
   const endD = parseDateKey(opts.end);
   const skip = holidaySet(opts.holidays);
+  const classes = opts.classes ?? [];
   const days: string[] = [];
   for (let d = parseDateKey(opts.start); d <= endD; d = addDays(d, 1)) {
     const key = toDateKey(d);
@@ -95,12 +146,30 @@ export function generateSessions(opts: {
   if (days.length === 0) return [];
 
   const n = Math.max(1, Math.min(opts.count, days.length));
-  return Array.from({ length: n }, (_, i) => ({
-    id: uid(),
-    date: days[Math.floor((i * days.length) / n)],
-    label: `Session ${i + 1} of ${n}`,
-    done: false,
-  }));
+
+  return Array.from({ length: n }, (_, i) => {
+    const from = Math.floor((i * days.length) / n);
+    const to = Math.max(from + 1, Math.floor(((i + 1) * days.length) / n));
+    // lightest teaching day in this slice; an earlier day wins a tie so
+    // sessions don't drift later than they need to
+    const date = days
+      .slice(from, to)
+      .reduce((best, candidate) =>
+        classLoadOn(classes, weekdayIndex(parseDateKey(candidate))) <
+        classLoadOn(classes, weekdayIndex(parseDateKey(best)))
+          ? candidate
+          : best
+      );
+
+    const window = freeWindowOn(classes, weekdayIndex(parseDateKey(date)));
+    return {
+      id: uid(),
+      date,
+      label: `Session ${i + 1} of ${n}`,
+      done: false,
+      ...(window ?? {}),
+    };
+  });
 }
 
 /* ---- class schedule queries ---- */
