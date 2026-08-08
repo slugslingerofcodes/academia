@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, ClipboardList, FileText, Lightbulb, TreePalm } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  Lightbulb,
+  Smartphone,
+  TreePalm,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlanner } from "@/lib/planner/use-planner";
 import { useClassNotifications } from "@/lib/planner/use-class-notifications";
@@ -15,6 +22,7 @@ import { AcademiaMark } from "./academia-mark";
 import { InstallPrompt } from "./install-prompt";
 import { ServiceWorkerRegistrar } from "./service-worker";
 import { ThemeToggle } from "./theme-toggle";
+import { DevicesTab } from "./devices-tab";
 
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
@@ -22,6 +30,7 @@ const TABS = [
   { id: "holidays", label: "Holidays", icon: TreePalm },
   { id: "think", label: "Think", icon: Lightbulb },
   { id: "resume", label: "Resume", icon: FileText },
+  { id: "devices", label: "Devices", icon: Smartphone },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -96,6 +105,7 @@ export function PlannerApp() {
           {tab === "holidays" && <HolidaysTab store={store} />}
           {tab === "think" && <ThinkTab store={store} />}
           {tab === "resume" && <ResumeTab store={store} />}
+          {tab === "devices" && <DevicesTab store={store} />}
         </>
       )}
     </div>

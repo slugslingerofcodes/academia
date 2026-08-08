@@ -50,6 +50,21 @@ locally in the browser (localStorage) — no account or backend needed.
 
 Tasks, classes, holidays and notes all support full create / edit / delete.
 
+## Moving between devices
+
+Academia stores everything in the browser it's open in, so a laptop and a phone
+each keep their own copy — there is no server holding a shared account. The
+**Devices** tab bridges that:
+
+- a **QR code** of this site, to open it on your phone and add it to the home
+  screen
+- **Export / import a backup** file to carry data across. Import offers *merge*
+  (keep both sides, matched by id, so importing twice changes nothing) or
+  *replace*. Exporting is also the only guard against clearing your browser data.
+
+Genuine live sync between devices would need a backend and accounts, which this
+app deliberately doesn't have.
+
 ## Google Calendar sync setup
 
 Direct sync uses Google Identity Services' browser token flow, so it needs only

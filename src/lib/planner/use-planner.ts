@@ -13,6 +13,7 @@ import {
   type Project,
   type ResumeData,
 } from "./types";
+import { mergeInto } from "./backup";
 
 /** Predates the rename to Academia — kept as-is so existing saved data loads. */
 const STORAGE_KEY = "maniac-ledger:planner:v1";
@@ -156,6 +157,16 @@ function updateSettings(patch: Partial<PlannerSettings>) {
   update((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
 }
 
+/** Overwrite everything — used when restoring a backup. */
+function replaceAll(next: PlannerData) {
+  update(() => next);
+}
+
+/** Fold a backup into what's already here, keeping both sides. */
+function mergeAll(incoming: PlannerData) {
+  update((d) => mergeInto(d, incoming));
+}
+
 function addNote(n: Note) {
   update((d) => ({ ...d, notes: [n, ...d.notes] }));
 }
@@ -199,6 +210,8 @@ export function usePlanner() {
     updateHoliday,
     setResume,
     updateSettings,
+    replaceAll,
+    mergeAll,
     addNote,
     updateNote,
     removeNote,
