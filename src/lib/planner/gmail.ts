@@ -19,10 +19,11 @@ const LIST = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
 
 /** Keeps the scan near mail that plausibly concerns the timetable. */
 const QUERY =
-  "newer_than:21d " +
+  "newer_than:60d " +
   "(cancelled OR canceled OR rescheduled OR postponed OR preponed OR " +
   '"extra class" OR "makeup class" OR "make-up class" OR ' +
-  '"venue change" OR "room change" OR "shifted to" OR timetable)';
+  '"venue change" OR "room change" OR "shifted to" OR ' +
+  '"observed as a holiday" OR "declared a holiday" OR "Announcement of Holiday")';
 
 /* ---- message fetching ---- */
 
@@ -114,21 +115,35 @@ export async function fetchRecentMail(limit = 25): Promise<Message[]> {
 
 /* ---- interpretation ---- */
 
-export interface Proposal {
+interface ProposalBase {
   id: string;
   messageId: string;
-  cls: ClassEntry;
-  date: string;
-  kind: ExceptionKind;
-  start?: string;
-  end?: string;
-  location?: string;
   /** The sentence this was read from, so the user can judge it. */
   evidence: string;
   subject: string;
   from: string;
   receivedAt: string;
 }
+
+/** A one-off change to a single class occurrence. */
+export interface ClassProposal extends ProposalBase {
+  target: "class";
+  cls: ClassEntry;
+  date: string;
+  kind: ExceptionKind;
+  start?: string;
+  end?: string;
+  location?: string;
+}
+
+/** A campus-wide holiday announcement. */
+export interface HolidayProposal extends ProposalBase {
+  target: "holiday";
+  date: string;
+  label: string;
+}
+
+export type Proposal = ClassProposal | HolidayProposal;
 
 const MONTHS = [
   "jan", "feb", "mar", "apr", "may", "jun",
@@ -241,6 +256,14 @@ function matchClass(text: string, classes: ClassEntry[]): ClassEntry | null {
   );
 }
 
+function evidenceForHoliday(text: string): string {
+  const sentence = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .find((s) => /holiday/i.test(s));
+  return (sentence ?? text.slice(0, 160)).replace(/\s+/g, " ").slice(0, 200);
+}
+
 /** The sentence a decision came from, for the user to check against. */
 function evidenceFor(text: string, kind: ExceptionKind): string {
   const words: Record<ExceptionKind, RegExp> = {
@@ -256,6 +279,40 @@ function evidenceFor(text: string, kind: ExceptionKind): string {
 }
 
 /**
+ * Campus holiday announcements, e.g. "26 June 2026 (Friday) shall be observed
+ * as a holiday on account of Muharram". These arrive from the registrar and
+ * concern every class at once, so they become a Holiday rather than a per-class
+ * exception.
+ */
+function findHoliday(msg: Message): { date: string; label: string } | null {
+  const text = `${msg.subject}\n${msg.body}`;
+  if (!/observed as a holiday|declared a holiday|announcement of holiday/i.test(text)) {
+    return null;
+  }
+
+  // the date sits right beside the holiday wording, so read that neighbourhood
+  const near =
+    text.match(
+      /(\d{1,2}\s+[A-Za-z]+\s+\d{4})[^.]{0,80}?(?:shall be |is |was )?observed as a holiday/i
+    ) ??
+    text.match(/holiday[^.]{0,80}?on\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
+  if (!near) return null;
+
+  const parsed = new Date(near[1]);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  // stop before the trailing preposition — "of Muharram on 26 June" must not
+  // capture "Muharram on"
+  const reason = text.match(
+    /on account of\s+([A-Za-z'&. -]{3,40}?)(?=\s+(?:on|at|in|from|for)\b|[,.;]|\s*$)/i
+  );
+  return {
+    date: toDateKey(parsed),
+    label: reason ? reason[1].trim() : "Holiday",
+  };
+}
+
+/**
  * Turn messages into proposals. A message only produces one when it names a
  * class we know, states a recognisable change, and gives a date the class
  * actually falls on — anything vaguer is left alone rather than guessed at.
@@ -265,6 +322,27 @@ export function interpret(messages: Message[], data: PlannerData): Proposal[] {
 
   for (const msg of messages) {
     const text = `${msg.subject}\n${msg.body}`;
+
+    // campus-wide holidays first: they need no class to match against
+    const holiday = findHoliday(msg);
+    if (holiday) {
+      const already = data.holidays.some((h) => h.date === holiday.date);
+      if (!already) {
+        out.push({
+          target: "holiday",
+          id: `${msg.id}-holiday`,
+          messageId: msg.id,
+          date: holiday.date,
+          label: holiday.label,
+          evidence: evidenceForHoliday(msg.body.trim() || msg.subject),
+          subject: msg.subject,
+          from: msg.from,
+          receivedAt: msg.date,
+        });
+      }
+      continue;
+    }
+
     const kind = classify(text);
     if (!kind) continue;
 
@@ -293,6 +371,7 @@ export function interpret(messages: Message[], data: PlannerData): Proposal[] {
         : undefined;
 
     out.push({
+      target: "class",
       id: `${msg.id}-${cls.id}`,
       messageId: msg.id,
       cls,
@@ -309,16 +388,18 @@ export function interpret(messages: Message[], data: PlannerData): Proposal[] {
     });
   }
 
-  // one proposal per class per date; the most recent mail wins
+  // one proposal per target per date; the most recent mail wins
+  const key = (p: Proposal) =>
+    p.target === "holiday" ? `holiday-${p.date}` : `${p.cls.id}-${p.date}`;
   return out
     .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
-    .filter(
-      (p, i, all) =>
-        all.findIndex((o) => o.cls.id === p.cls.id && o.date === p.date) === i
-    );
+    .filter((p, i, all) => all.findIndex((o) => key(o) === key(p)) === i);
 }
 
 export function describeProposal(p: Proposal): string {
+  if (p.target === "holiday") {
+    return `${p.label} — holiday on ${p.date}`;
+  }
   const when = `${DAY_NAMES[p.cls.day]} ${p.date}`;
   if (p.kind === "cancelled") return `${classLabel(p.cls)} cancelled on ${when}`;
   if (p.kind === "room")

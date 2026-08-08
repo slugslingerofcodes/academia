@@ -21,6 +21,11 @@ const KIND_LABEL = {
   room: "Room change",
 } as const;
 
+function badgeFor(p: Proposal) {
+  if (p.target === "holiday") return { label: "Holiday", danger: false };
+  return { label: KIND_LABEL[p.kind], danger: p.kind === "cancelled" };
+}
+
 export function EmailReviewPanel({ store }: { store: PlannerStore }) {
   const [busy, setBusy] = useState(false);
   const [proposals, setProposals] = useState<Proposal[] | null>(null);
@@ -44,16 +49,21 @@ export function EmailReviewPanel({ store }: { store: PlannerStore }) {
   }, [store.data]);
 
   const apply = (p: Proposal) => {
-    store.addException({
-      id: uid(),
-      classId: p.cls.id,
-      date: p.date,
-      kind: p.kind,
-      start: p.start,
-      end: p.end,
-      location: p.location,
-      source: p.subject,
-    });
+    if (p.target === "holiday") {
+      // a campus holiday affects every class that day, so it becomes a Holiday
+      store.addHoliday({ id: uid(), date: p.date, label: p.label });
+    } else {
+      store.addException({
+        id: uid(),
+        classId: p.cls.id,
+        date: p.date,
+        kind: p.kind,
+        start: p.start,
+        end: p.end,
+        location: p.location,
+        source: p.subject,
+      });
+    }
     setApplied((a) => [...a, p.id]);
   };
 
@@ -77,9 +87,9 @@ export function EmailReviewPanel({ store }: { store: PlannerStore }) {
   return (
     <Panel title="Changes from your email" icon={<Mail />}>
       <p className="text-sm text-muted">
-        Scans your recent mail for cancellations, reschedules and room changes
-        that mention classes you&apos;ve added, and suggests the matching
-        change. <span className="font-medium text-foreground">Nothing is
+        Scans your recent mail for campus holiday announcements, and for
+        cancellations, reschedules and room changes naming classes you&apos;ve
+        added — then suggests the matching change. <span className="font-medium text-foreground">Nothing is
         applied until you approve it</span> — an email is written by whoever
         sent it, so it shouldn&apos;t be able to rewrite your timetable on its
         own.
@@ -130,9 +140,9 @@ export function EmailReviewPanel({ store }: { store: PlannerStore }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge
-                    variant={p.kind === "cancelled" ? "destructive" : "secondary"}
+                    variant={badgeFor(p).danger ? "destructive" : "secondary"}
                   >
-                    {KIND_LABEL[p.kind]}
+                    {badgeFor(p).label}
                   </Badge>
                   <span className="text-sm font-medium text-foreground">
                     {describeProposal(p)}
