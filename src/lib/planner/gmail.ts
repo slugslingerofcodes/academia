@@ -226,9 +226,18 @@ function findTime(text: string): string | null {
   return `${pad(hour)}:${pad(minute)}`;
 }
 
+/**
+ * A room code following a keyword, e.g. "room D204", "venue: 2103", "Room No. 6108".
+ *
+ * The code has to be one unbroken token. Allowing a space between the letters
+ * and the digits meant any word followed by a number read as a room: "the lab
+ * **on 11** Aug has been rescheduled" yielded "ON 11", which both invented a
+ * room change and rescued reschedules that should have been rejected for
+ * naming no new venue.
+ */
 function findRoom(text: string): string | null {
   const m = text.match(
-    /\b(?:room|venue|hall|lt|lab)\s*(?:no\.?|number)?\s*[:\-]?\s*([A-Z]{0,3}[-\s]?\d{1,4}[A-Z]?)\b/i
+    /\b(?:room|venue|hall|lt|lab)\s*(?:no\.?|number)?\s*[:\-]?\s*([A-Z]{0,3}-?\d{1,4}[A-Z]?)\b/i
   );
   return m ? m[1].trim().toUpperCase() : null;
 }
@@ -256,11 +265,30 @@ function matchClass(text: string, classes: ClassEntry[]): ClassEntry | null {
   );
 }
 
+/** Abbreviations whose full stop doesn't end a sentence. */
+const ABBREVIATION = /\b(?:no|nos|dr|prof|mr|mrs|ms|st|dept|rm|approx|etc|vs)\.$/i;
+
+/**
+ * Split into sentences, keeping abbreviations intact.
+ *
+ * A naive split put "shifts to Room No." and "6108." in separate sentences, so
+ * the quoted evidence stopped just before the room number — the one detail the
+ * user is being asked to approve.
+ */
+function sentences(text: string): string[] {
+  const out: string[] = [];
+  for (const piece of text.split(/(?<=[.!?])\s+|\n+/)) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    const prev = out[out.length - 1];
+    if (prev && ABBREVIATION.test(prev)) out[out.length - 1] = `${prev} ${trimmed}`;
+    else out.push(trimmed);
+  }
+  return out;
+}
+
 function evidenceForHoliday(text: string): string {
-  const sentence = text
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((s) => s.trim())
-    .find((s) => /holiday/i.test(s));
+  const sentence = sentences(text).find((s) => /holiday/i.test(s));
   return (sentence ?? text.slice(0, 160)).replace(/\s+/g, " ").slice(0, 200);
 }
 
@@ -271,10 +299,7 @@ function evidenceFor(text: string, kind: ExceptionKind): string {
     moved: /reschedul|postpon|prepon|shifted to|moved to|advanced to/i,
     room: /venue|room/i,
   };
-  const sentence = text
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((s) => s.trim())
-    .find((s) => words[kind].test(s));
+  const sentence = sentences(text).find((s) => words[kind].test(s));
   return (sentence ?? text.slice(0, 160)).replace(/\s+/g, " ").slice(0, 200);
 }
 
