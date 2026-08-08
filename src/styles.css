@@ -8,7 +8,9 @@
 :root {
   --background: #f6f7fb;
   --foreground: #1c2130;
-  --muted: #64708a;
+  /* darkened from #64708a, which fell to 4.2:1 on the tinted panel and tab
+     backgrounds — below the 4.5:1 WCAG AA floor for body text */
+  --muted: #5b6680;
   --accent: #4f46e5;
   --accent-contrast: #ffffff;
   --border: #e4e7ef;

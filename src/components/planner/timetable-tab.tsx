@@ -29,6 +29,7 @@ import {
   formatDateKey,
   holidaySet,
   nextClass,
+  occurrenceOn,
   toDateKey,
 } from "@/lib/planner/schedule";
 import {
@@ -191,7 +192,7 @@ function WeekGrid({
   store: PlannerStore;
   onEdit: (cls: ClassEntry) => void;
 }) {
-  const { classes, holidays } = store.data;
+  const { classes, holidays, exceptions } = store.data;
   const week = currentWeekDates();
   const todayKey = toDateKey(new Date());
   const skip = holidaySet(holidays);
@@ -243,12 +244,18 @@ function WeekGrid({
               {dayClasses.length === 0 && !isHoliday && (
                 <span className="py-4 text-center text-xs text-muted/60">Free day</span>
               )}
-              {dayClasses.map((cls) => (
+              {dayClasses.map((cls) => {
+                // one-off cancellation or reschedule for this specific date
+                const occurrence = occurrenceOn(cls, dateKey, exceptions);
+                const cancelled = occurrence === null;
+                const from = occurrence?.start ?? cls.start;
+                const until = occurrence?.end ?? cls.end;
+                return (
                 <div
                   key={cls.id}
                   className={cn(
                     "group relative rounded-lg border border-border border-l-4 bg-background px-3 py-2",
-                    isHoliday && "opacity-50"
+                    (isHoliday || cancelled) && "opacity-50"
                   )}
                   style={{ borderLeftColor: TYPE_COLOR[cls.type] }}
                 >
@@ -258,7 +265,7 @@ function WeekGrid({
                   <div
                     className={cn(
                       "pr-5 text-sm font-medium text-foreground",
-                      isHoliday && "line-through"
+                      (isHoliday || cancelled) && "line-through"
                     )}
                   >
                     {cls.title}
@@ -275,9 +282,15 @@ function WeekGrid({
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock className="size-3" />
-                      {cls.start}–{cls.end}
+                      {from}–{until}
                     </span>
-                    {cls.location && <span>· {cls.location}</span>}
+                    {occurrence?.location && <span>· {occurrence.location}</span>}
+                    {cancelled && (
+                      <span className="font-medium text-destructive">· Cancelled</span>
+                    )}
+                    {occurrence?.changed && (
+                      <span className="font-medium text-warn">· Rescheduled</span>
+                    )}
                   </div>
                   {/* always visible: on a touch screen there is no hover, so
                       hiding these behind :hover made them unreachable on phones */}
@@ -300,7 +313,8 @@ function WeekGrid({
                     </button>
                   </span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

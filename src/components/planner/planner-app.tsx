@@ -104,7 +104,11 @@ export function PlannerApp() {
       </nav>
 
       {!store.hydrated ? (
-        <div className="py-24 text-center text-sm text-muted">Loading…</div>
+        // reserve roughly a screen of height: the planner only exists after
+        // hydration, and collapsing to a short box first shifts the whole page
+        <div className="flex min-h-[70vh] items-start justify-center py-24 text-sm text-muted">
+          Loading…
+        </div>
       ) : (
         <>
           {tab === "missions" && <TasksTab store={store} />}

@@ -1,4 +1,4 @@
-import type { ClassEntry, Holiday, PlannerData } from "./types";
+import type { ClassEntry, ClassException, Holiday, PlannerData } from "./types";
 import { classLabel, CLASS_TYPE_LABEL } from "./types";
 import {
   addDays,
@@ -83,7 +83,8 @@ function classEvent(
   holidays: Holiday[],
   stamp: string,
   now: Date,
-  leadMinutes: number
+  leadMinutes: number,
+  exceptions: ClassException[] = []
 ): string[] {
   const anchor = anchorFor(cls.day, now);
   const startMin = minutesOf(cls.start);
@@ -94,14 +95,24 @@ function classEvent(
   const end = new Date(anchor);
   end.setHours(Math.floor(endMin / 60), endMin % 60, 0, 0);
 
+  const atClassTime = (dateKey: string) => {
+    const d = parseDateKey(dateKey);
+    d.setHours(Math.floor(startMin / 60), startMin % 60, 0, 0);
+    return icsDateTime(d);
+  };
+
   // a holiday on this weekday cancels that week's class
-  const exdates = holidays
+  const holidayDates = holidays
     .filter((h) => weekdayIndex(parseDateKey(h.date)) === cls.day)
-    .map((h) => {
-      const d = parseDateKey(h.date);
-      d.setHours(Math.floor(startMin / 60), startMin % 60, 0, 0);
-      return icsDateTime(d);
-    });
+    .map((h) => atClassTime(h.date));
+
+  // so does a one-off cancellation; a moved class is excluded here and
+  // re-added below as its own single event at the new time
+  const exceptionDates = exceptions
+    .filter((x) => x.classId === cls.id)
+    .map((x) => atClassTime(x.date));
+
+  const exdates = [...new Set([...holidayDates, ...exceptionDates])];
 
   return [
     "BEGIN:VEVENT",
@@ -113,6 +124,35 @@ function classEvent(
     ...(exdates.length > 0 ? [`EXDATE:${exdates.join(",")}`] : []),
     `SUMMARY:${esc(`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]})`)}`,
     ...(cls.location ? [`LOCATION:${esc(cls.location)}`] : []),
+    ...alarm(classLabel(cls), leadMinutes),
+    "END:VEVENT",
+  ];
+}
+
+/** A rescheduled class: one standalone event at its new time. */
+function movedEvent(
+  cls: ClassEntry,
+  ex: ClassException,
+  stamp: string,
+  leadMinutes: number
+): string[] {
+  const start = parseDateKey(ex.date);
+  const s = minutesOf(ex.start ?? cls.start);
+  const e = minutesOf(ex.end ?? cls.end);
+  const from = new Date(start);
+  from.setHours(Math.floor(s / 60), s % 60, 0, 0);
+  const until = new Date(start);
+  until.setHours(Math.floor(e / 60), e % 60, 0, 0);
+  const where = ex.location ?? cls.location;
+
+  return [
+    "BEGIN:VEVENT",
+    `UID:moved-${ex.id}@academia`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${icsDateTime(from)}`,
+    `DTEND:${icsDateTime(until)}`,
+    `SUMMARY:${esc(`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]}) — rescheduled`)}`,
+    ...(where ? [`LOCATION:${esc(where)}`] : []),
     ...alarm(classLabel(cls), leadMinutes),
     "END:VEVENT",
   ];
@@ -164,7 +204,22 @@ export function buildIcs(
 
   if (options.includeClasses) {
     for (const cls of data.classes) {
-      lines.push(...classEvent(cls, data.holidays, stamp, now, options.leadMinutes));
+      lines.push(
+        ...classEvent(
+          cls,
+          data.holidays,
+          stamp,
+          now,
+          options.leadMinutes,
+          data.exceptions
+        )
+      );
+      // rescheduled occurrences were excluded from the recurrence, so add each
+      // back as its own event at the time it actually moved to
+      for (const ex of data.exceptions) {
+        if (ex.classId !== cls.id || ex.kind === "cancelled") continue;
+        lines.push(...movedEvent(cls, ex, stamp, options.leadMinutes));
+      }
     }
   }
 

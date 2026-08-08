@@ -1,4 +1,4 @@
-import type { ClassEntry, Holiday, PlannerData } from "./types";
+import type { ClassEntry, ClassException, Holiday, PlannerData } from "./types";
 import { classLabel, CLASS_TYPE_LABEL } from "./types";
 import {
   currentWeekDates,
@@ -167,20 +167,30 @@ export function classToEvent(
   cls: ClassEntry,
   holidays: Holiday[],
   leadMinutes: number,
-  now = new Date()
+  now = new Date(),
+  exceptions: ClassException[] = []
 ) {
   const { start, end } = slotTimes(cls, now);
   const tz = localTimeZone();
 
   const recurrence: string[] = [`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[cls.day]}`];
-  const exdates = holidays
+  const atClassTime = (dateKey: string) => {
+    const d = parseDateKey(dateKey);
+    const s = minutesOf(cls.start);
+    d.setHours(Math.floor(s / 60), s % 60, 0, 0);
+    return stamp(d);
+  };
+
+  const holidayDates = holidays
     .filter((h) => weekdayIndex(parseDateKey(h.date)) === cls.day)
-    .map((h) => {
-      const d = parseDateKey(h.date);
-      const s = minutesOf(cls.start);
-      d.setHours(Math.floor(s / 60), s % 60, 0, 0);
-      return stamp(d);
-    });
+    .map((h) => atClassTime(h.date));
+
+  // one-off cancellations and reschedules drop out of the weekly series too
+  const exceptionDates = exceptions
+    .filter((x) => x.classId === cls.id)
+    .map((x) => atClassTime(x.date));
+
+  const exdates = [...new Set([...holidayDates, ...exceptionDates])];
   if (exdates.length > 0) {
     recurrence.push(`EXDATE;TZID=${tz}:${exdates.join(",")}`);
   }
@@ -233,7 +243,13 @@ export async function syncClasses(
   };
 
   for (const cls of data.classes) {
-    const event = classToEvent(cls, data.holidays, leadMinutes);
+    const event = classToEvent(
+      cls,
+      data.holidays,
+      leadMinutes,
+      new Date(),
+      data.exceptions
+    );
     try {
       const res = await fetch(API, {
         method: "POST",
