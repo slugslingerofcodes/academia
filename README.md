@@ -17,6 +17,14 @@ locally in the browser (localStorage) — no account or backend needed.
 - **Tasks & Projects** — start a task or project over any period and Academia
   generates a timetable: work sessions spread evenly across the dates, skipping
   weekends if you want. Check sessions off to track progress.
+- **Upcoming** — one table per week for the next 2, 4 or 8 weeks, merging all
+  three schedules: classes down one column, tasks and projects down the other,
+  with holidays and deadlines marked. Today is highlighted, past days dimmed,
+  and each week carries a one-line count. A holiday replaces that day's classes
+  with the holiday name, since it cancels all of them at once; a single class
+  cancelled or moved by an exception stays visible with a marker and its new
+  time, because that's specific information worth seeing. Weeks with nothing in
+  them are hidden by default.
 - **Weekly Timetable** — add a subject once with its code, name and kind
   (lecture / lab / tutorial), ticking every day it meets and giving each day its
   own times and room. View it as a **chart** (time down the side, days across

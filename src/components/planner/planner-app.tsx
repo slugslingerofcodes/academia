@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   CalendarDays,
+  CalendarRange,
   ClipboardList,
   FileText,
   Lightbulb,
@@ -14,6 +15,7 @@ import { usePlanner } from "@/lib/planner/use-planner";
 import { useClassNotifications } from "@/lib/planner/use-class-notifications";
 import { TasksTab } from "./tasks-tab";
 import { TimetableTab } from "./timetable-tab";
+import { UpcomingTab } from "./upcoming-tab";
 import { HolidaysTab } from "./holidays-tab";
 import { ResumeTab } from "./resume-tab";
 import { ThinkTab } from "./think-tab";
@@ -28,6 +30,7 @@ import { DevicesTab } from "./devices-tab";
 const TABS = [
   { id: "missions", label: "Tasks & Projects", icon: ClipboardList },
   { id: "timetable", label: "Weekly Timetable", icon: CalendarDays },
+  { id: "upcoming", label: "Upcoming", icon: CalendarRange },
   { id: "holidays", label: "Holidays", icon: TreePalm },
   { id: "think", label: "Think", icon: Lightbulb },
   { id: "resume", label: "Resume", icon: FileText },
@@ -113,6 +116,7 @@ export function PlannerApp() {
         <>
           {tab === "missions" && <TasksTab store={store} />}
           {tab === "timetable" && <TimetableTab store={store} alerts={alerts} />}
+          {tab === "upcoming" && <UpcomingTab store={store} />}
           {tab === "holidays" && <HolidaysTab store={store} />}
           {tab === "think" && <ThinkTab store={store} />}
           {tab === "resume" && <ResumeTab store={store} />}
