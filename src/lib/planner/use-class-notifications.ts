@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import type { ClassEntry, Holiday } from "./types";
+import type { ClassEntry, ClassException, Holiday } from "./types";
 import { classLabel } from "./types";
-import { holidaySet, minutesOf, toDateKey, weekdayIndex } from "./schedule";
+import { holidaySet, minutesOf, occurrenceOn, toDateKey, weekdayIndex } from "./schedule";
 
 const NOTIFIED_KEY = "maniac-ledger:notified:v1";
 export const LEAD_MINUTES = 10;
@@ -28,7 +28,11 @@ const serverPermission = () => "default" as const;
  * Holidays are muted; each class notifies at most once per day (deduped in
  * localStorage so a reload doesn't re-fire). Runs while the app is mounted.
  */
-export function useClassNotifications(classes: ClassEntry[], holidays: Holiday[]) {
+export function useClassNotifications(
+  classes: ClassEntry[],
+  holidays: Holiday[],
+  exceptions: ClassException[] = []
+) {
   const permission = useSyncExternalStore(
     subscribePermission,
     getPermission,
@@ -71,14 +75,17 @@ export function useClassNotifications(classes: ClassEntry[], holidays: Holiday[]
       const today = weekdayIndex(now);
       for (const cls of classes) {
         if (cls.day !== today || seen[cls.id]) continue;
-        const delta = minutesOf(cls.start) - nowMin;
+        // a class cancelled for this date shouldn't remind anyone
+        const occurrence = occurrenceOn(cls, todayKey, exceptions);
+        if (!occurrence) continue;
+        const delta = minutesOf(occurrence.start) - nowMin;
         if (delta < 0 || delta > LEAD_MINUTES) continue;
         new Notification(
           delta === 0
             ? `${classLabel(cls)} — starting now`
             : `${classLabel(cls)} — in ${delta} min`,
           {
-            body: `${cls.start}–${cls.end}${cls.location ? ` · ${cls.location}` : ""}`,
+            body: `${occurrence.start}–${occurrence.end}${occurrence.location ? ` · ${occurrence.location}` : ""}`,
             tag: `maniac-ledger-${cls.id}-${todayKey}`,
           }
         );
@@ -90,7 +97,7 @@ export function useClassNotifications(classes: ClassEntry[], holidays: Holiday[]
     tick();
     const id = setInterval(tick, 20_000);
     return () => clearInterval(id);
-  }, [permission, classes, holidays]);
+  }, [permission, classes, holidays, exceptions]);
 
   return { permission, request, test };
 }

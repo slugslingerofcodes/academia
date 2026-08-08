@@ -6,6 +6,7 @@ import {
   EMPTY_DATA,
   EMPTY_RESUME,
   type ClassEntry,
+  type ClassException,
   type Holiday,
   type Note,
   type PlannerData,
@@ -42,6 +43,7 @@ function loadData(): PlannerData {
         notes: parsed.notes ?? [],
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         deleted: parsed.deleted ?? [],
+        exceptions: parsed.exceptions ?? [],
       };
       return cache;
     }
@@ -173,6 +175,27 @@ function setResume(resume: ResumeData) {
   update((d) => ({ ...d, resume }));
 }
 
+function addException(e: ClassException) {
+  update((d) => ({
+    // one exception per class per date — a newer one replaces the old
+    ...d,
+    exceptions: [
+      ...d.exceptions.filter(
+        (x) => !(x.classId === e.classId && x.date === e.date)
+      ),
+      e,
+    ],
+  }));
+}
+
+function removeException(id: string) {
+  update((d) => ({
+    ...d,
+    exceptions: d.exceptions.filter((x) => x.id !== id),
+    deleted: buryIds(d, [id]),
+  }));
+}
+
 function updateSettings(patch: Partial<PlannerSettings>) {
   update((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
 }
@@ -233,6 +256,8 @@ export function usePlanner() {
     removeHoliday,
     updateHoliday,
     setResume,
+    addException,
+    removeException,
     updateSettings,
     replaceAll,
     mergeAll,

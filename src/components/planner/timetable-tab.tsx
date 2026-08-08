@@ -40,6 +40,7 @@ import { EmptyState, Field, Panel, inputCls } from "./ui";
 import { ClassForm } from "./class-form";
 import { TimetableGrid } from "./timetable-grid";
 import { CalendarImportPanel } from "./calendar-import";
+import { EmailReviewPanel } from "./email-review";
 import { CalendarSyncPanel } from "./calendar-sync";
 import { GoogleCalendarPanel } from "./google-calendar-panel";
 
@@ -57,7 +58,7 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
     return () => clearInterval(id);
   }, []);
 
-  const upcoming = nextClass(store.data.classes, store.data.holidays, now);
+  const upcoming = nextClass(store.data.classes, store.data.holidays, now, store.data.exceptions);
   const todayIsHoliday = holidaySet(store.data.holidays).has(toDateKey(now));
 
   const status =
@@ -86,7 +87,9 @@ function AlertsPanel({ store, alerts }: { store: PlannerStore; alerts: ClassAler
             {todayIsHoliday
               ? "Today is a holiday — reminders are paused."
               : upcoming
-                ? `Next up: ${classLabel(upcoming.cls)} · ${DAY_NAMES[upcoming.cls.day]} ${upcoming.cls.start} (in ${
+                ? `Next up: ${classLabel(upcoming.cls)} · ${DAY_NAMES[upcoming.cls.day]} ${upcoming.start}${
+                    upcoming.moved ? " (rescheduled)" : ""
+                  } (in ${
                     upcoming.minutesUntil >= 60
                       ? `${Math.floor(upcoming.minutesUntil / 60)}h ${upcoming.minutesUntil % 60}m`
                       : `${upcoming.minutesUntil} min`
@@ -371,6 +374,7 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
           onDone={() => setEditingClass(null)}
         />
       </div>
+      <EmailReviewPanel store={store} />
       <CalendarImportPanel store={store} />
       <GoogleCalendarPanel store={store} />
       <CalendarSyncPanel store={store} />

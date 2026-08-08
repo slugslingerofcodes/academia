@@ -66,6 +66,30 @@ export interface Holiday {
   label?: string;
 }
 
+export const EXCEPTION_KINDS = ["cancelled", "moved", "room"] as const;
+export type ExceptionKind = (typeof EXCEPTION_KINDS)[number];
+
+/**
+ * A one-off change to a single occurrence of a weekly class.
+ *
+ * Classes repeat every week, so "Thursday's lab is cancelled" can't be
+ * expressed by editing the class itself without wiping out every other week.
+ */
+export interface ClassException {
+  id: string;
+  classId: string;
+  /** The specific date affected, YYYY-MM-DD. */
+  date: string;
+  kind: ExceptionKind;
+  /** Replacement time for a moved class. */
+  start?: string;
+  end?: string;
+  /** Replacement room. */
+  location?: string;
+  /** Where this came from, e.g. an email subject. */
+  source?: string;
+}
+
 export interface EducationEntry {
   id: string;
   school: string;
@@ -160,6 +184,7 @@ export interface PlannerData {
   notes: Note[];
   settings: PlannerSettings;
   deleted: Tombstone[];
+  exceptions: ClassException[];
 }
 
 export const EMPTY_DATA: PlannerData = {
@@ -170,4 +195,5 @@ export const EMPTY_DATA: PlannerData = {
   notes: [],
   settings: DEFAULT_SETTINGS,
   deleted: [],
+  exceptions: [],
 };

@@ -39,7 +39,11 @@ type TabId = (typeof TABS)[number]["id"];
 export function PlannerApp() {
   const store = usePlanner();
   // mounted at the top level so class alerts keep firing on every tab
-  const alerts = useClassNotifications(store.data.classes, store.data.holidays);
+  const alerts = useClassNotifications(
+    store.data.classes,
+    store.data.holidays,
+    store.data.exceptions
+  );
   // start-of-day summary, sharing the same notification permission
   useDailyDigest(store.data, alerts.permission);
   // signed-in account + background sync with the copy held in Drive

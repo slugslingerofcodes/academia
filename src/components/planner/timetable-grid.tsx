@@ -16,6 +16,7 @@ import {
   formatDateKey,
   holidaySet,
   minutesOf,
+  occurrenceOn,
   toDateKey,
 } from "@/lib/planner/schedule";
 
@@ -59,7 +60,7 @@ export function TimetableGrid({
   store: PlannerStore;
   onEdit: (cls: ClassEntry) => void;
 }) {
-  const { classes, holidays } = store.data;
+  const { classes, holidays, exceptions } = store.data;
   const week = currentWeekDates();
   const todayKey = toDateKey(new Date());
   const skip = holidaySet(holidays);
@@ -151,10 +152,15 @@ export function TimetableGrid({
                   ))}
 
                   {placed.map(({ cls, lane, lanes }) => {
-                    const top = ((minutesOf(cls.start) - dayStart) / 60) * HOUR_HEIGHT;
+                    // a one-off cancellation or reschedule overrides this week
+                    const occurrence = occurrenceOn(cls, dateKey, exceptions);
+                    const cancelled = occurrence === null;
+                    const from = occurrence?.start ?? cls.start;
+                    const until = occurrence?.end ?? cls.end;
+                    const top = ((minutesOf(from) - dayStart) / 60) * HOUR_HEIGHT;
                     const height = Math.max(
                       22,
-                      ((minutesOf(cls.end) - minutesOf(cls.start)) / 60) * HOUR_HEIGHT
+                      ((minutesOf(until) - minutesOf(from)) / 60) * HOUR_HEIGHT
                     );
                     const compact = height < 46;
                     return (
@@ -162,7 +168,7 @@ export function TimetableGrid({
                         key={cls.id}
                         className={cn(
                           "group absolute overflow-hidden rounded-md border-l-[3px] bg-background px-1.5 py-1 shadow-sm",
-                          isHoliday && "opacity-50"
+                          (isHoliday || cancelled) && "opacity-50"
                         )}
                         style={{
                           top,
@@ -171,12 +177,14 @@ export function TimetableGrid({
                           width: `calc(${100 / lanes}% - 4px)`,
                           borderLeftColor: TYPE_COLOR[cls.type],
                         }}
-                        title={`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]}) ${cls.start}–${cls.end}${cls.location ? ` · ${cls.location}` : ""}`}
+                        title={`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]}) ${from}–${until}${
+                          occurrence?.location ? ` · ${occurrence.location}` : ""
+                        }${cancelled ? " — cancelled" : occurrence?.changed ? " — rescheduled" : ""}`}
                       >
                         <div
                           className={cn(
                             "truncate text-[11px] font-semibold leading-tight text-foreground",
-                            isHoliday && "line-through"
+                            (isHoliday || cancelled) && "line-through"
                           )}
                         >
                           {cls.code ?? cls.title}
@@ -184,11 +192,21 @@ export function TimetableGrid({
                         {!compact && (
                           <>
                             <div className="truncate text-[10px] leading-tight text-muted">
-                              {cls.start}–{cls.end}
+                              {from}–{until}
                             </div>
-                            {cls.location && (
+                            {occurrence?.location && (
                               <div className="truncate text-[10px] leading-tight text-muted">
-                                {cls.location}
+                                {occurrence.location}
+                              </div>
+                            )}
+                            {cancelled && (
+                              <div className="truncate text-[10px] leading-tight font-medium text-destructive">
+                                Cancelled
+                              </div>
+                            )}
+                            {occurrence?.changed && (
+                              <div className="truncate text-[10px] leading-tight font-medium text-warn">
+                                Rescheduled
                               </div>
                             )}
                           </>

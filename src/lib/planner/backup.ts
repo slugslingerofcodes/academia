@@ -107,6 +107,7 @@ export function parseBackup(text: string): ParseResult {
       notes: Array.isArray(d.notes) ? d.notes : [],
       settings: { ...DEFAULT_SETTINGS, ...d.settings },
       deleted: Array.isArray(d.deleted) ? d.deleted : [],
+      exceptions: Array.isArray(d.exceptions) ? d.exceptions : [],
     },
   };
 }
@@ -141,6 +142,7 @@ export function mergeInto(current: PlannerData, incoming: PlannerData): PlannerD
     classes: byId(current.classes, incoming.classes),
     holidays: byId(current.holidays, incoming.holidays),
     notes: byId(current.notes, incoming.notes),
+    exceptions: byId(current.exceptions, incoming.exceptions),
     // a resume is a single document — keep whichever side actually has one
     resume: current.resume?.name || current.resume?.email
       ? current.resume

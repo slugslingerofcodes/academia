@@ -5,6 +5,12 @@ locally in the browser (localStorage) — no account or backend needed.
 
 ## Features
 
+- **Changes from your email** — scans recent mail for cancellations,
+  reschedules and room changes naming classes you've added, and proposes the
+  matching one-off change. **Nothing is applied without your approval**: an
+  email is written by whoever sent it, so it must not be able to rewrite your
+  timetable unattended. Each suggestion quotes the sentence it came from. Uses
+  read-only Gmail access, requested only when you scan.
 - **Class-aware scheduling** — generated work sessions steer around your
   timetable: within each evenly-spaced slot they pick your lightest teaching
   day, and take the largest class-free window on it.

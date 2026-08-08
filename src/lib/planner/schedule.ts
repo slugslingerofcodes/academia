@@ -1,4 +1,4 @@
-import type { ClassEntry, Holiday, WorkSession } from "./types";
+import type { ClassEntry, ClassException, Holiday, WorkSession } from "./types";
 
 export const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 export const DAY_FULL = [
@@ -180,18 +180,56 @@ export function classesOnDay(classes: ClassEntry[], day: number): ClassEntry[] {
     .sort((a, b) => minutesOf(a.start) - minutesOf(b.start));
 }
 
+/**
+ * How a class actually stands on one date, once one-off exceptions are applied.
+ * Returns null when that occurrence is cancelled.
+ */
+export function occurrenceOn(
+  cls: ClassEntry,
+  date: string,
+  exceptions: ClassException[]
+): { start: string; end: string; location?: string; changed: boolean } | null {
+  const ex = exceptions.find((x) => x.classId === cls.id && x.date === date);
+  if (!ex) {
+    return { start: cls.start, end: cls.end, location: cls.location, changed: false };
+  }
+  if (ex.kind === "cancelled") return null;
+  return {
+    start: ex.start ?? cls.start,
+    end: ex.end ?? cls.end,
+    location: ex.location ?? cls.location,
+    changed: true,
+  };
+}
+
+export function isCancelledOn(
+  cls: ClassEntry,
+  date: string,
+  exceptions: ClassException[]
+): boolean {
+  return exceptions.some(
+    (x) => x.classId === cls.id && x.date === date && x.kind === "cancelled"
+  );
+}
+
 export interface UpcomingClass {
   cls: ClassEntry;
   date: string;
   startsAt: Date;
   minutesUntil: number;
+  /** Effective times for this date — differ from the class when it was moved. */
+  start: string;
+  end: string;
+  location?: string;
+  moved: boolean;
 }
 
 /** The next class within a week that isn't on a holiday, or null. */
 export function nextClass(
   classes: ClassEntry[],
   holidays: Holiday[],
-  now = new Date()
+  now = new Date(),
+  exceptions: ClassException[] = []
 ): UpcomingClass | null {
   const skip = holidaySet(holidays);
   for (let offset = 0; offset <= 7; offset++) {
@@ -199,7 +237,9 @@ export function nextClass(
     const key = toDateKey(day);
     if (skip.has(key)) continue;
     for (const cls of classesOnDay(classes, weekdayIndex(day))) {
-      const min = minutesOf(cls.start);
+      const occurrence = occurrenceOn(cls, key, exceptions);
+      if (!occurrence) continue; // cancelled that week
+      const min = minutesOf(occurrence.start);
       const startsAt = new Date(day);
       startsAt.setHours(Math.floor(min / 60), min % 60, 0, 0);
       if (startsAt.getTime() > now.getTime()) {
@@ -208,6 +248,10 @@ export function nextClass(
           date: key,
           startsAt,
           minutesUntil: Math.round((startsAt.getTime() - now.getTime()) / 60000),
+          start: occurrence.start,
+          end: occurrence.end,
+          location: occurrence.location,
+          moved: occurrence.changed,
         };
       }
     }
