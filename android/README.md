@@ -5,16 +5,32 @@ A thin native shell around the Academia web app. It exists for one reason: the
 `SYSTEM_ALERT_WINDOW` permission, which is only available to a native app — no
 PWA or browser can draw outside its own window.
 
-Everything else (timetable, reminders, notes, resume) is the same web app,
-loaded in a WebView from `APP_URL` in `app/build.gradle.kts`.
+Everything else (timetable, reminders, notes, resume) is the same web app, run
+as a **Trusted Web Activity** — Chrome itself renders the site, full screen and
+without a URL bar, rather than an in-app WebView.
+
+That distinction is the whole design, not a detail. WebView storage is sandboxed
+per-app, so a WebView build would open an empty planner and never see the data
+belonging to the PWA on the home screen. Running in Chrome means the app and the
+installed PWA share one `localStorage`, so they are the same planner.
+
+The site it opens is the `DEFAULT_URL` meta-data in
+`app/src/main/AndroidManifest.xml` — change it there. (`APP_URL` in
+`app/build.gradle.kts` is a leftover from the WebView build and is read by
+nothing.)
 
 ## What it does
 
-- `MainActivity` — hosts the web app in a WebView with DOM storage enabled, so
-  your planner data persists exactly as it does in the browser.
+- `MainActivity` — extends `LauncherActivity` from androidbrowserhelper and
+  launches the TWA. It holds the launch back on first run until the overlay
+  permission has been answered, so that prompt isn't buried behind Chrome.
 - `OverlayService` — a foreground service that adds a draggable, semi‑transparent
   crest bubble via `WindowManager` using `TYPE_APPLICATION_OVERLAY`. Drag to
   move it; tap to open Academia. Its notification has a **Hide bubble** action.
+
+Chrome only drops the URL bar once it has verified
+`/.well-known/assetlinks.json` on the site against this app's signing
+certificate — see [Signing](#signing).
 
 ## Building
 
