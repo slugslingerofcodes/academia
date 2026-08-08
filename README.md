@@ -62,8 +62,19 @@ each keep their own copy — there is no server holding a shared account. The
   (keep both sides, matched by id, so importing twice changes nothing) or
   *replace*. Exporting is also the only guard against clearing your browser data.
 
-Genuine live sync between devices would need a backend and accounts, which this
-app deliberately doesn't have.
+### Automatic sync
+
+With the Google client ID configured, **Sync across devices** keeps everything
+in step through `appDataFolder` — a per-app hidden folder in your Drive. It uses
+the `drive.appdata` scope, which Google classes as non-sensitive because it can
+only ever touch files the app itself created; your other Drive files stay
+invisible to it, and the folder doesn't appear in the Drive UI.
+
+Each sync is read-merge-write: pull the stored copy, merge by id, write back.
+Deletions are recorded as tombstones so removing something on one device isn't
+undone by the other device still having it. Sync is manual — press the button
+after making changes elsewhere. Editing the same entry on both devices before
+syncing keeps the copy from whichever device you sync from.
 
 ## Google Calendar sync setup
 

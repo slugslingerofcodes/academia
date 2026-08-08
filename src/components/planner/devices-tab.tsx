@@ -3,7 +3,9 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import {
   Check,
+  CloudUpload,
   Download,
+  RefreshCw,
   Smartphone,
   TriangleAlert,
   Upload,
@@ -18,6 +20,12 @@ import {
   summarise,
   type BackupSummary,
 } from "@/lib/planner/backup";
+import {
+  isConfigured,
+  lastSyncedAt,
+  syncWithDrive,
+  type SyncOutcome,
+} from "@/lib/planner/google-drive";
 import { Panel } from "./ui";
 import { QrCode } from "./qr-code";
 
@@ -39,6 +47,89 @@ function Row({ label, value }: { label: string; value: string | number }) {
       <span className="text-sm text-muted">{label}</span>
       <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
+  );
+}
+
+/** Automatic cross-device sync via Google Drive's per-app hidden folder. */
+function CloudSyncPanel({ store }: { store: PlannerStore }) {
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<SyncOutcome | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
+
+  const run = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    setOutcome(null);
+    try {
+      const result = await syncWithDrive(store.data);
+      store.replaceAll(result.merged);
+      setOutcome(result);
+      setSyncedAt(lastSyncedAt());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sync failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, [store]);
+
+  if (!isConfigured()) {
+    return (
+      <Panel title="Sync across devices" icon={<CloudUpload />}>
+        <p className="text-sm text-muted">
+          Automatic sync needs the Google client ID configured — the same one
+          the calendar sync uses. Until then, use the backup export and import
+          below.
+        </p>
+      </Panel>
+    );
+  }
+
+  const shown = syncedAt ?? lastSyncedAt();
+
+  return (
+    <Panel title="Sync across devices" icon={<CloudUpload />}>
+      <p className="text-sm text-muted">
+        Keeps this device and your phone in step through a private folder in
+        your Google Drive. Sync on both, and each ends up with everything.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-sm text-muted">
+          {shown
+            ? `Last synced ${new Date(shown).toLocaleString()}`
+            : "Not synced on this device yet."}
+        </span>
+        <Button className="rounded-full px-5" disabled={busy} onClick={run}>
+          <RefreshCw data-icon="inline-start" />
+          {busy ? "Syncing…" : "Sync now"}
+        </Button>
+      </div>
+
+      {outcome && (
+        <div className="mt-4 rounded-xl border border-accent/40 bg-accent-faint p-4">
+          <p className="flex items-center gap-2 text-sm font-medium text-accent">
+            <Check className="size-4" />
+            {outcome.firstSync
+              ? `Uploaded ${outcome.pushed} entries — sync the other device next.`
+              : `Synced. ${outcome.pulled} brought in, ${outcome.pushed} sent up.`}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="mt-4 flex items-center gap-2 text-sm text-destructive">
+          <TriangleAlert className="size-4" />
+          {error}
+        </p>
+      )}
+
+      <p className="mt-3 text-xs text-muted">
+        The folder is private to Academia — it can&apos;t see anything else in
+        your Drive, and won&apos;t show up among your files. Sync is manual, so
+        run it after making changes on the other device.
+      </p>
+    </Panel>
   );
 }
 
@@ -116,6 +207,8 @@ export function DevicesTab({ store }: { store: PlannerStore }) {
           </div>
         </div>
       </Panel>
+
+      <CloudSyncPanel store={store} />
 
       <Panel title="Move your data between devices" icon={<Download />}>
         <p className="text-sm text-muted">

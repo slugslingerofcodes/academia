@@ -138,6 +138,17 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   digestTime: "08:00",
 };
 
+/**
+ * Record of something deleted, kept so the deletion survives a sync.
+ *
+ * Without these, merging two devices would resurrect anything deleted on one
+ * of them, because the other device still has a perfectly good copy.
+ */
+export interface Tombstone {
+  id: string;
+  at: number;
+}
+
 export interface PlannerData {
   projects: Project[];
   classes: ClassEntry[];
@@ -145,6 +156,7 @@ export interface PlannerData {
   resume: ResumeData;
   notes: Note[];
   settings: PlannerSettings;
+  deleted: Tombstone[];
 }
 
 export const EMPTY_DATA: PlannerData = {
@@ -154,4 +166,5 @@ export const EMPTY_DATA: PlannerData = {
   resume: EMPTY_RESUME,
   notes: [],
   settings: DEFAULT_SETTINGS,
+  deleted: [],
 };

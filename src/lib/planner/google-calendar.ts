@@ -17,7 +17,9 @@ import {
  */
 
 const GIS_SRC = "https://accounts.google.com/gsi/client";
-const SCOPE = "https://www.googleapis.com/auth/calendar.events";
+export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+/** Google's per-app hidden folder — cannot see any of the user's other files. */
+export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const BYDAY = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
 
@@ -75,8 +77,15 @@ function loadGis(): Promise<void> {
   return gisPromise;
 }
 
-/** Opens Google's consent popup and resolves with an access token. */
-export async function requestAccessToken(): Promise<string> {
+/**
+ * Opens Google's consent popup and resolves with an access token.
+ *
+ * The scope is passed in so each feature asks only for what it needs — using
+ * calendar sync never requests access to Drive, and vice versa.
+ */
+export async function requestAccessToken(
+  scope: string = CALENDAR_SCOPE
+): Promise<string> {
   if (!isConfigured()) throw new Error("Google client ID is not configured.");
   await loadGis();
   const oauth2 = window.google?.accounts.oauth2;
@@ -85,7 +94,7 @@ export async function requestAccessToken(): Promise<string> {
   return new Promise((resolve, reject) => {
     const client = oauth2.initTokenClient({
       client_id: CLIENT_ID,
-      scope: SCOPE,
+      scope,
       callback: (res) => {
         if (res.error || !res.access_token) {
           reject(new Error(res.error ?? "Google sign-in was cancelled."));

@@ -12,6 +12,7 @@ import {
   type PlannerSettings,
   type Project,
   type ResumeData,
+  type Tombstone,
 } from "./types";
 import { mergeInto } from "./backup";
 
@@ -40,6 +41,7 @@ function loadData(): PlannerData {
         resume: { ...EMPTY_RESUME, ...parsed.resume },
         notes: parsed.notes ?? [],
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+        deleted: parsed.deleted ?? [],
       };
       return cache;
     }
@@ -61,12 +63,22 @@ function update(mutate: (d: PlannerData) => PlannerData) {
   listeners.forEach((l) => l());
 }
 
+/** Append tombstones so a sync doesn't resurrect what was just deleted. */
+function buryIds(d: PlannerData, ids: string[]): Tombstone[] {
+  const at = Date.now();
+  return [...d.deleted, ...ids.map((id) => ({ id, at }))];
+}
+
 function addProject(p: Project) {
   update((d) => ({ ...d, projects: [p, ...d.projects] }));
 }
 
 function removeProject(id: string) {
-  update((d) => ({ ...d, projects: d.projects.filter((p) => p.id !== id) }));
+  update((d) => ({
+    ...d,
+    projects: d.projects.filter((p) => p.id !== id),
+    deleted: buryIds(d, [id]),
+  }));
 }
 
 function updateProject(id: string, patch: Partial<Project>) {
@@ -103,21 +115,25 @@ function addClasses(list: ClassEntry[]) {
 
 /** Remove every meeting sharing a subject's code + title + type. */
 function removeSubject(sample: ClassEntry) {
-  update((d) => ({
-    ...d,
-    classes: d.classes.filter(
-      (c) =>
-        !(
-          (c.code ?? "") === (sample.code ?? "") &&
-          c.title === sample.title &&
-          c.type === sample.type
-        )
-    ),
-  }));
+  update((d) => {
+    const matches = (c: ClassEntry) =>
+      (c.code ?? "") === (sample.code ?? "") &&
+      c.title === sample.title &&
+      c.type === sample.type;
+    return {
+      ...d,
+      classes: d.classes.filter((c) => !matches(c)),
+      deleted: buryIds(d, d.classes.filter(matches).map((c) => c.id)),
+    };
+  });
 }
 
 function removeClass(id: string) {
-  update((d) => ({ ...d, classes: d.classes.filter((c) => c.id !== id) }));
+  update((d) => ({
+    ...d,
+    classes: d.classes.filter((c) => c.id !== id),
+    deleted: buryIds(d, [id]),
+  }));
 }
 
 function updateClass(id: string, patch: Partial<ClassEntry>) {
@@ -137,7 +153,11 @@ function addHoliday(h: Holiday) {
 }
 
 function removeHoliday(id: string) {
-  update((d) => ({ ...d, holidays: d.holidays.filter((h) => h.id !== id) }));
+  update((d) => ({
+    ...d,
+    holidays: d.holidays.filter((h) => h.id !== id),
+    deleted: buryIds(d, [id]),
+  }));
 }
 
 function updateHoliday(id: string, patch: Partial<Holiday>) {
@@ -181,7 +201,11 @@ function updateNote(id: string, patch: Partial<Note>) {
 }
 
 function removeNote(id: string) {
-  update((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }));
+  update((d) => ({
+    ...d,
+    notes: d.notes.filter((n) => n.id !== id),
+    deleted: buryIds(d, [id]),
+  }));
 }
 
 const serverSnapshot = () => EMPTY_DATA;

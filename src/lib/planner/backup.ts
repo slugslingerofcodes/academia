@@ -106,19 +106,35 @@ export function parseBackup(text: string): ParseResult {
       resume: { ...EMPTY_RESUME, ...d.resume },
       notes: Array.isArray(d.notes) ? d.notes : [],
       settings: { ...DEFAULT_SETTINGS, ...d.settings },
+      deleted: Array.isArray(d.deleted) ? d.deleted : [],
     },
   };
 }
 
 /**
- * Combine an incoming backup with what's already here, keeping both sides.
- * Entries are matched by id so importing the same file twice is a no-op.
+ * Combine two planners, keeping both sides.
+ *
+ * Entries are matched by id, so merging the same data twice is a no-op. Either
+ * side's tombstones remove the record from the result — otherwise deleting
+ * something on one device and syncing would simply bring it back from the
+ * other. Where both sides hold the same id, the current device wins.
  */
 export function mergeInto(current: PlannerData, incoming: PlannerData): PlannerData {
+  const buried = new Set(
+    [...current.deleted, ...incoming.deleted].map((t) => t.id)
+  );
+
   const byId = <T extends { id: string }>(mine: T[], theirs: T[]): T[] => {
     const seen = new Set(mine.map((x) => x.id));
-    return [...mine, ...theirs.filter((x) => !seen.has(x.id))];
+    return [...mine, ...theirs.filter((x) => !seen.has(x.id))].filter(
+      (x) => !buried.has(x.id)
+    );
   };
+
+  // keep one tombstone per id; they only need to outlive the other device's copy
+  const deleted = [...current.deleted, ...incoming.deleted].filter(
+    (t, i, all) => all.findIndex((o) => o.id === t.id) === i
+  );
 
   return {
     projects: byId(current.projects, incoming.projects),
@@ -130,5 +146,6 @@ export function mergeInto(current: PlannerData, incoming: PlannerData): PlannerD
       ? current.resume
       : incoming.resume,
     settings: current.settings,
+    deleted,
   };
 }
