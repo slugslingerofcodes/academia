@@ -16,7 +16,7 @@ locally in the browser (localStorage) — no account or backend needed.
   day, and take the largest class-free window on it.
 - **Tasks & Projects** — start a task or project over any period and Academia
   generates a timetable: work sessions spread evenly across the dates, skipping
-  weekends (optional) and marked holidays. Check sessions off to track progress.
+  weekends if you want. Check sessions off to track progress.
 - **Weekly Timetable** — add a subject once with its code, name and kind
   (lecture / lab / tutorial), ticking every day it meets and giving each day its
   own times and room. View it as a **chart** (time down the side, days across
@@ -32,19 +32,30 @@ locally in the browser (localStorage) — no account or backend needed.
 - **Start-of-day summary** — one notification each morning listing what's due:
   deadlines first, then work sessions and how many classes. The time is
   configurable, it fires at most once a day, and it catches up if the app wasn't
-  open at that hour. On a holiday it still reports deadlines — those don't move
-  for a day off — while classes and planned work stay muted.
+  open at that hour. On a holiday it still reports deadlines and work sessions —
+  those don't move for a day off — while classes stay muted.
 - **Clash warnings** — overlapping classes are flagged with the exact
   overlapping window, both as a standing panel and live while you fill the form.
   Adding one is still allowed; it's a heads-up, not a block. Days carrying work
   sessions from several projects are flagged too.
 - **Light and dark** — a Light / Dark / System toggle in the header. The saved
   choice is applied before first paint, so there's no flash of the wrong theme.
-- **Holidays** — mark any date as a holiday. Reminders pause on that day, the
-  week view flags it, and newly generated timetables skip it.
-- **Google Calendar sync** — write classes straight into Google Calendar as
-  weekly repeating events with 10-minute reminders, skipping holidays. Needs a
-  Google OAuth client ID (see below); until one is set, use the export below.
+- **Holidays cancel classes, and nothing else** — mark any date as a holiday
+  and class reminders pause, the week view flags it, and the class drops out of
+  the exported calendar. Your own tasks and projects carry on: a deadline
+  doesn't move because campus is shut. Work sessions are in fact *steered
+  towards* holidays — with no teaching that day the whole study window is free,
+  so a holiday counts as the lightest possible day.
+- **Google Calendar sync, both ways** — *push* writes classes into Google
+  Calendar as weekly repeating events with 10-minute reminders, skipping
+  holidays. *Pull* reads weekly repeating events back out, so a class added in
+  Google Calendar or by a university feed lands in Academia too. Only repeating
+  events become classes: a one-off meeting or an all-day entry isn't a timetable
+  slot. Nothing is added until you confirm it — the calendar is shared with
+  whatever else writes to it, so it doesn't get to rewrite your timetable
+  unattended. Events Academia wrote itself are skipped, so a class you deleted
+  here isn't resurrected by its leftover copy. Needs a Google OAuth client ID
+  (see below); until one is set, use the export below.
 - **Google Calendar export** — download your timetable as a standard `.ics`
   file and import it into Google Calendar once. Google then syncs it to your
   phone and laptop, and each class carries a 10-minute reminder as a native

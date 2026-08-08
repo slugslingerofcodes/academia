@@ -41,7 +41,7 @@ function NewEntryForm({ store }: { store: PlannerStore }) {
       classes: store.data.classes,
     });
     if (sessions.length === 0)
-      return setError("No available days — the whole period is holidays or weekends.");
+      return setError("No available days — the whole period falls on skipped weekends.");
     store.addProject({
       id: uid(),
       name: name.trim(),
@@ -140,9 +140,11 @@ function NewEntryForm({ store }: { store: PlannerStore }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-muted">
-          Sessions spread across the period, skipping marked holidays. They land
-          on your lighter teaching days, in the largest gap between that
-          day&apos;s classes.
+          Sessions spread across the period and land on your lighter teaching
+          days, in the largest gap between that day&apos;s classes. Holidays
+          count as free days, not days off — a deadline doesn&apos;t move
+          because campus is shut — so they&apos;re preferred, with the whole day
+          open.
         </p>
       </form>
     </Panel>

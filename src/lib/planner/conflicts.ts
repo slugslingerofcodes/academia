@@ -105,8 +105,9 @@ export interface DueToday {
 /**
  * What the daily reminder should mention for a given date.
  *
- * A holiday cancels classes and planned work, but not a deadline — those are
- * externally imposed and still land that day, so they're reported either way.
+ * A holiday cancels classes, and nothing else. Deadlines are externally imposed
+ * and still land that day, and your own work sessions are deliberately still
+ * scheduled on holidays — so both are reported either way.
  */
 export function whatIsDue(data: PlannerData, now = new Date()): DueToday {
   const key = toDateKey(now);
@@ -126,7 +127,7 @@ export function whatIsDue(data: PlannerData, now = new Date()): DueToday {
 
   const day = (now.getDay() + 6) % 7;
   return {
-    sessions: isHoliday ? [] : sessions,
+    sessions,
     deadlines,
     classes: isHoliday ? 0 : data.classes.filter((c) => c.day === day).length,
     isHoliday,

@@ -1,10 +1,20 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { CalendarSync, Check, RefreshCw, TriangleAlert } from "lucide-react";
+import {
+  CalendarSync,
+  Check,
+  CloudDownload,
+  RefreshCw,
+  TriangleAlert,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlannerStore } from "@/lib/planner/use-planner";
 import { LEAD_MINUTES } from "@/lib/planner/use-class-notifications";
+import { CLASS_HUES, CLASS_TYPE_LABEL } from "@/lib/planner/types";
+import { DAY_NAMES, uid } from "@/lib/planner/schedule";
+import { isDuplicate, type ParsedClass } from "@/lib/planner/ics-import";
+import { fetchCalendarClasses } from "@/lib/planner/google-calendar-import";
 import {
   isConfigured,
   localTimeZone,
@@ -15,6 +25,13 @@ import {
 import { Panel } from "./ui";
 
 type Status = "idle" | "working" | "done" | "error";
+
+interface Incoming {
+  fresh: ParsedClass[];
+  duplicates: number;
+  skipped: number;
+  warnings: string[];
+}
 
 function SetupNotice() {
   return (
@@ -57,6 +74,10 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
   const [result, setResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [pulling, setPulling] = useState(false);
+  const [incoming, setIncoming] = useState<Incoming | null>(null);
+  const [imported, setImported] = useState<number | null>(null);
+
   const sync = useCallback(async () => {
     setStatus("working");
     setError(null);
@@ -72,6 +93,53 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
     }
   }, [store.data]);
 
+  const pull = useCallback(async () => {
+    setPulling(true);
+    setError(null);
+    setImported(null);
+    setIncoming(null);
+    try {
+      const token = await requestAccessToken();
+      const found = await fetchCalendarClasses(token);
+      const existing = store.data.classes;
+      const fresh: ParsedClass[] = [];
+      let duplicates = 0;
+      for (const c of found.classes) {
+        if (isDuplicate(c, existing) || isDuplicate(c, fresh)) duplicates++;
+        else fresh.push(c);
+      }
+      setIncoming({
+        fresh,
+        duplicates,
+        skipped: found.skipped,
+        warnings: found.warnings,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't read your calendar.");
+    } finally {
+      setPulling(false);
+    }
+  }, [store.data.classes]);
+
+  const applyIncoming = () => {
+    if (!incoming) return;
+    store.addClasses(
+      incoming.fresh.map((c) => ({
+        id: uid(),
+        code: c.code,
+        title: c.title,
+        type: c.type,
+        day: c.day,
+        start: c.start,
+        end: c.end,
+        location: c.location,
+        hue: CLASS_HUES[0],
+      }))
+    );
+    setImported(incoming.fresh.length);
+    setIncoming(null);
+  };
+
   if (!isConfigured()) return <SetupNotice />;
 
   const classCount = store.data.classes.length;
@@ -79,9 +147,12 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
   return (
     <Panel title="Google Calendar sync" icon={<CalendarSync />}>
       <p className="text-sm text-muted">
-        Write your classes straight into Google Calendar as weekly repeating
-        events, each with a {LEAD_MINUTES}-minute reminder. Marked holidays are
-        excluded automatically. Times use your {localTimeZone()} timezone.
+        Sync runs both ways. <span className="font-medium text-foreground">Push</span> writes
+        your classes into Google Calendar as weekly repeating events, each with
+        a {LEAD_MINUTES}-minute reminder, with marked holidays excluded.{" "}
+        <span className="font-medium text-foreground">Pull</span> reads weekly
+        events back, so classes added in Google Calendar or by a university feed
+        land here too. Times use your {localTimeZone()} timezone.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -120,6 +191,103 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
           </p>
         </div>
       )}
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-muted">
+            Bring classes in from Google Calendar.
+          </span>
+          <Button
+            variant="outline"
+            className="rounded-full px-5"
+            disabled={pulling}
+            onClick={pull}
+          >
+            <CloudDownload data-icon="inline-start" />
+            {pulling ? "Reading…" : "Import from Google Calendar"}
+          </Button>
+        </div>
+
+        {incoming && (
+          <div className="mt-4 rounded-xl border border-border bg-background/40 p-4">
+            {incoming.fresh.length === 0 ? (
+              <p className="text-sm text-muted">
+                Nothing new to add
+                {incoming.duplicates > 0 &&
+                  ` — ${incoming.duplicates} already in your timetable`}
+                .
+              </p>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-foreground">
+                  {incoming.fresh.length} class
+                  {incoming.fresh.length === 1 ? "" : "es"} found
+                  {incoming.duplicates > 0 &&
+                    `, ${incoming.duplicates} already yours`}
+                  .
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-muted">
+                  {incoming.fresh.slice(0, 8).map((c, i) => (
+                    <li key={`${c.title}-${c.day}-${c.start}-${i}`}>
+                      {DAY_NAMES[c.day]} {c.start}–{c.end} ·{" "}
+                      {c.code ? `${c.code} — ` : ""}
+                      {c.title} ({CLASS_TYPE_LABEL[c.type]})
+                      {c.location ? ` · ${c.location}` : ""}
+                    </li>
+                  ))}
+                  {incoming.fresh.length > 8 && (
+                    <li>…and {incoming.fresh.length - 8} more</li>
+                  )}
+                </ul>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="rounded-full px-4"
+                    onClick={applyIncoming}
+                  >
+                    <Check data-icon="inline-start" />
+                    Add to my timetable
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted hover:text-foreground"
+                    onClick={() => setIncoming(null)}
+                  >
+                    Discard
+                  </Button>
+                </div>
+              </>
+            )}
+            {incoming.warnings.map((w) => (
+              <p key={w} className="mt-2 text-xs text-muted">
+                {w}
+              </p>
+            ))}
+            {incoming.skipped > 0 && (
+              <p className="mt-2 text-xs text-muted">
+                {incoming.skipped} event{incoming.skipped === 1 ? "" : "s"} left
+                alone — one-off entries, all-day events, and the ones Academia
+                wrote itself.
+              </p>
+            )}
+          </div>
+        )}
+
+        {imported !== null && (
+          <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+            <Check className="size-4" />
+            Added {imported} class{imported === 1 ? "" : "es"} to your timetable.
+          </p>
+        )}
+
+        <p className="mt-3 text-xs text-muted">
+          Nothing is added until you confirm — your calendar is shared with
+          whatever else writes to it, so it doesn&apos;t get to change your
+          timetable on its own. Events Academia created are skipped, so a class
+          you deleted here isn&apos;t resurrected by its leftover copy.
+        </p>
+      </div>
 
       {error && (
         <p className="mt-4 flex items-center gap-2 text-sm text-destructive">

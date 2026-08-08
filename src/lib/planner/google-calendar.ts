@@ -23,6 +23,12 @@ export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const BYDAY = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
 
+/**
+ * Stamped on every event this app writes. The import side reads it to tell our
+ * own events apart from ones added in Google Calendar directly.
+ */
+export const ACADEMIA_MARK = "Added by Academia";
+
 export const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 export const isConfigured = () => CLIENT_ID.length > 0;
 
@@ -199,7 +205,7 @@ export function classToEvent(
     id: toEventId(cls.id),
     summary: `${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]})`,
     ...(cls.location ? { location: cls.location } : {}),
-    description: "Added by Academia",
+    description: ACADEMIA_MARK,
     start: { dateTime: rfc3339(start), timeZone: tz },
     end: { dateTime: rfc3339(end), timeZone: tz },
     recurrence,

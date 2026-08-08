@@ -117,13 +117,19 @@ export function freeWindowOn(
 }
 
 /**
- * Spread `count` work sessions across [start, end], skipping holidays (and
- * weekends when requested), and steering around the class timetable.
+ * Spread `count` work sessions across [start, end], skipping weekends when
+ * requested, and steering around the class timetable.
  *
  * The period is split into one bucket per session so sessions stay evenly
  * spaced, then within each bucket the lightest teaching day is chosen. Each
  * session also takes the largest class-free window on that day, so it lands in
  * time that is genuinely free rather than clashing with a lecture.
+ *
+ * A holiday cancels *classes*, not your own work — a deadline doesn't move
+ * because campus is shut, and a free day is usually the best day to get ahead.
+ * So holidays stay eligible here, and are treated as having no teaching at all:
+ * they carry zero load, which makes them preferred, and the whole study window
+ * is free rather than routed around lectures that aren't happening.
  */
 export function generateSessions(opts: {
   start: string;
@@ -134,16 +140,20 @@ export function generateSessions(opts: {
   classes?: ClassEntry[];
 }): WorkSession[] {
   const endD = parseDateKey(opts.end);
-  const skip = holidaySet(opts.holidays);
+  const holidays = holidaySet(opts.holidays);
   const classes = opts.classes ?? [];
   const days: string[] = [];
   for (let d = parseDateKey(opts.start); d <= endD; d = addDays(d, 1)) {
-    const key = toDateKey(d);
-    if (skip.has(key)) continue;
     if (opts.skipWeekends && weekdayIndex(d) >= 5) continue;
-    days.push(key);
+    days.push(toDateKey(d));
   }
   if (days.length === 0) return [];
+
+  /* nothing is taught on a holiday, so the day is wide open */
+  const loadOn = (key: string) =>
+    holidays.has(key) ? 0 : classLoadOn(classes, weekdayIndex(parseDateKey(key)));
+  const windowOn = (key: string) =>
+    freeWindowOn(holidays.has(key) ? [] : classes, weekdayIndex(parseDateKey(key)));
 
   const n = Math.max(1, Math.min(opts.count, days.length));
 
@@ -155,13 +165,10 @@ export function generateSessions(opts: {
     const date = days
       .slice(from, to)
       .reduce((best, candidate) =>
-        classLoadOn(classes, weekdayIndex(parseDateKey(candidate))) <
-        classLoadOn(classes, weekdayIndex(parseDateKey(best)))
-          ? candidate
-          : best
+        loadOn(candidate) < loadOn(best) ? candidate : best
       );
 
-    const window = freeWindowOn(classes, weekdayIndex(parseDateKey(date)));
+    const window = windowOn(date);
     return {
       id: uid(),
       date,

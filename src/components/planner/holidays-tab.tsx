@@ -167,8 +167,9 @@ export function HolidaysTab({ store }: { store: PlannerStore }) {
             </Button>
           </div>
           <p className="mt-3 text-xs text-muted">
-            On a holiday, class reminders are paused, the week view flags the day, and new
-            task timetables skip it.
+            A holiday cancels classes only: reminders pause and the week view
+            flags the day. Your own tasks and projects still run — work sessions
+            are even steered towards holidays, since the whole day is free.
           </p>
         </form>
       </Panel>
