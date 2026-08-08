@@ -1,7 +1,28 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+/**
+ * Release signing, read from android/keystore.properties.
+ *
+ * That file and the .jks beside it are gitignored: the signing key is the app's
+ * identity. Chrome checks its fingerprint against assetlinks.json on the site
+ * before granting Trusted Web Activity status, and Android refuses to update an
+ * installed app signed with a different key. Losing it means every user has to
+ * uninstall and reinstall.
+ *
+ * When it's absent — a fresh clone, or CI — the release build falls back to the
+ * debug key so `assembleRelease` still produces something installable. Such a
+ * build will show a URL bar, because its fingerprint isn't the published one.
+ */
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "app.academia"
@@ -27,12 +48,26 @@ android {
         checkReleaseBuilds = false
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                enableV1Signing = false // minSdk is 26; v2/v3 cover every device
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // debug signing so `assembleRelease` produces an installable APK
-            // without needing a keystore; replace before any Play Store upload
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                if (hasReleaseKey) signingConfigs.getByName("release")
+                else signingConfigs.getByName("debug")
         }
     }
 

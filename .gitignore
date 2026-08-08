@@ -50,3 +50,10 @@ next-env.d.ts
 /android/local.properties
 /android/.idea
 /android/dist
+
+# Android signing — losing these means never being able to update the app,
+# and committing them means anyone can sign as Academia. Back them up somewhere
+# private instead (password manager), never here.
+*.jks
+*.keystore
+/android/keystore.properties

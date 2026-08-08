@@ -36,8 +36,41 @@ Two things worth knowing about this setup:
 - **`local.properties` uses forward slashes** for `sdk.dir`. A Java properties
   file treats `\` as an escape character, so Windows-style paths silently break.
 
-Release builds are signed with the debug key so they install directly. Generate
-a real keystore before any Play Store upload.
+## Signing
+
+Release builds are signed with `academia-release.jks`, a 4096-bit RSA key valid
+until 2053. Gradle reads it through `keystore.properties`; both files sit in
+`android/` and are **gitignored**.
+
+Back both up somewhere private. The signing key is the app's identity in two
+ways that are unforgiving:
+
+- Android refuses to install an update signed with a different key, so losing it
+  means every user must uninstall and reinstall.
+- Chrome checks its SHA-256 fingerprint against
+  `public/.well-known/assetlinks.json` on the site before granting Trusted Web
+  Activity status. A mismatch doesn't fail loudly — the app just opens with a
+  browser URL bar. **Change the key and you must update that file and redeploy.**
+
+Current fingerprint, matching what the site publishes:
+
+```
+BF:29:23:F9:F3:86:5B:66:A2:5A:8E:EE:4B:00:33:0B:9D:66:1A:43:AB:23:4B:D5:55:21:D5:35:E0:37:86:D7
+```
+
+Read it back from an APK at any time with:
+
+```
+apksigner verify --print-certs app-release.apk
+```
+
+If `keystore.properties` is missing — a fresh clone, or CI — the release build
+falls back to the debug key so `assembleRelease` still yields something
+installable. That build will show a URL bar, because its fingerprint isn't the
+published one.
+
+Signing uses v2 and v3 schemes only; v1 (JAR signing) is off because `minSdk` is
+26 and every supported device understands v2.
 
 ## Installing
 
