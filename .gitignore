@@ -51,6 +51,10 @@ next-env.d.ts
 /android/.idea
 /android/dist
 
+# Logo source artwork. The icons are generated from it, but it's an 8 MB
+# mockup and only needed when they're regenerated — keep it out of history.
+/monogram.png
+
 # Android signing — losing these means never being able to update the app,
 # and committing them means anyone can sign as Academia. Back them up somewhere
 # private instead (password manager), never here.

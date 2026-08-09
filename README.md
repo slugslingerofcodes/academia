@@ -142,9 +142,23 @@ no address bar — like a native app.
 - **Android** — Chrome shows an **Install app** button in the app itself, or
   use **⋮ → Add to Home screen**.
 
-The app icon, name and colours come from `app/manifest.ts`, with the icons
-generated at build time by `app/icon.tsx`, `app/icon1.tsx` (maskable) and
-`app/apple-icon.tsx` — no binary image assets required.
+The app name and colours come from `app/manifest.ts`. The icons are PNGs picked
+up by Next's file-based metadata:
+
+| File | Size | Where it shows |
+| --- | --- | --- |
+| `src/app/icon.png` | 512×512 | PWA icon, `purpose: any` |
+| `src/app/icon1.png` | 512×512 | Maskable — Android crops it to a circle |
+| `src/app/apple-icon.png` | 180×180 | iOS home screen |
+| `src/app/favicon.ico` | 32×32 | Browser tab |
+| `public/logo.png` | 192×192 | The mark in the app's own header |
+
+All five are the gold monogram on the app's `#0e1015`. Two of them have
+constraints worth knowing before you replace them: the **maskable** icon is
+cropped to a circle inscribed in the centre 80%, so its artwork is deliberately
+smaller than the others and must never reach the edges; and **`logo.png` must be
+opaque**, because it is layered over the placeholder crest in the header and a
+transparent one would let that show through.
 
 ### Offline
 
