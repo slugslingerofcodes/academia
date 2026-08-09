@@ -34,14 +34,10 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        // Unused: a leftover from when this was a WebView shell. The TWA opens
-        // the DEFAULT_URL meta-data in AndroidManifest.xml, so changing this
-        // moves nothing — kept only until something is confirmed to read it.
-        buildConfigField("String", "APP_URL", "\"https://academia-planner.vercel.app\"")
-    }
-
-    buildFeatures {
-        buildConfig = true
+        // The site this opens is the DEFAULT_URL meta-data in
+        // AndroidManifest.xml. There is deliberately no APP_URL build field:
+        // one existed from the WebView era, nothing read it, and it sat here
+        // looking like the place to change the URL.
     }
 
     lint {

@@ -42,6 +42,13 @@ locally in the browser (localStorage) — no account or backend needed.
   configurable, it fires at most once a day, and it catches up if the app wasn't
   open at that hour. On a holiday it still reports deadlines and work sessions —
   those don't move for a day off — while classes stay muted.
+- **One-off changes** — a class repeats weekly, so "this Thursday's lecture is
+  cancelled" can't be recorded by editing the class without wiping every other
+  week. Record it as a one-off instead: cancelled, rescheduled, or a room
+  change, for a single date. The week view, reminders, the Upcoming table and
+  the calendar export all follow it. Anything approved from an email lands in
+  the same list and can be undone there, and a date the class doesn't actually
+  meet on is refused.
 - **Clash warnings** — overlapping classes are flagged with the exact
   overlapping window, both as a standing panel and live while you fill the form.
   Adding one is still allowed; it's a heads-up, not a block. Days carrying work
@@ -190,3 +197,24 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run build` — production build
 - `npm start` — serve the production build
 - `npm run lint` — run ESLint
+- `npm run typecheck` — `tsc --noEmit`, which covers the tests too
+- `npm test` — the unit tests
+- `npm run check` — lint, typecheck and test in one go
+
+## Tests
+
+The planner's decisions — which day a work session lands on, what a mail is
+allowed to change, which calendar events count as classes — are pure functions
+over plain data, so they're tested directly with `node:test` and no test
+framework.
+
+`npm test` runs the TypeScript sources as they are. Node strips the types
+itself, but it still resolves imports the ESM way, and the sources omit file
+extensions throughout because they're written for a bundler.
+`tools/ts-resolve.mjs` is a small resolve hook that retries `./x` as `./x.ts`,
+which is what lets the suite run with no build step and no dependencies.
+
+Several tests exist because something was actually wrong once: that ordinary
+prose isn't read as a room number, that a quoted mail sentence survives an
+abbreviation, and that holidays stay available for work. Those are the ones
+worth keeping honest.

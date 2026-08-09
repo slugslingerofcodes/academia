@@ -15,9 +15,7 @@ belonging to the PWA on the home screen. Running in Chrome means the app and the
 installed PWA share one `localStorage`, so they are the same planner.
 
 The site it opens is the `DEFAULT_URL` meta-data in
-`app/src/main/AndroidManifest.xml` — change it there. (`APP_URL` in
-`app/build.gradle.kts` is a leftover from the WebView build and is read by
-nothing.)
+`app/src/main/AndroidManifest.xml` — change it there, and nowhere else.
 
 ## What it does
 
