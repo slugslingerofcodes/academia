@@ -2,10 +2,12 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   eventsToClasses,
+  findOrphanedEvents,
   isOwnEvent,
   type CalendarEvent,
 } from "../src/lib/planner/google-calendar-import";
-import { ACADEMIA_MARK } from "../src/lib/planner/google-calendar";
+import { ACADEMIA_MARK, toEventId } from "../src/lib/planner/google-calendar";
+import type { ClassEntry } from "../src/lib/planner/types";
 
 const weekly = (over: Partial<CalendarEvent> = {}): CalendarEvent => ({
   id: "evt",
@@ -88,5 +90,66 @@ describe("not re-importing our own exports", () => {
     const res = eventsToClasses([weekly({ description: ACADEMIA_MARK })]);
     assert.deepEqual(res.classes, []);
     assert.equal(res.skipped, 1);
+  });
+});
+
+describe("finding events left behind by a deleted class", () => {
+  const cls = (id: string): ClassEntry => ({
+    id,
+    title: `Subject ${id}`,
+    type: "lecture",
+    day: 0,
+    start: "09:00",
+    end: "10:00",
+    hue: "accent",
+  });
+
+  const ours = (classId: string, summary: string): CalendarEvent => ({
+    id: toEventId(classId),
+    summary,
+    description: ACADEMIA_MARK,
+    start: { dateTime: "2026-08-10T09:00:00+05:30" },
+  });
+
+  const live = cls("11111111-2222-3333-4444-555555555555");
+  const gone = cls("99999999-8888-7777-6666-555555555555");
+
+  test("an event whose class still exists is left alone", () => {
+    const found = findOrphanedEvents([ours(live.id, "Live class")], [live]);
+    assert.deepEqual(found, []);
+  });
+
+  test("an event whose class was deleted is reported", () => {
+    const found = findOrphanedEvents(
+      [ours(live.id, "Live class"), ours(gone.id, "Deleted class")],
+      [live]
+    );
+    assert.equal(found.length, 1);
+    assert.equal(found[0].summary, "Deleted class");
+  });
+
+  /*
+   * The dangerous direction: this decides what gets deleted from a real
+   * calendar, so anything not provably ours has to survive.
+   */
+  test("events Academia did not create are never reported, even with no classes", () => {
+    const foreign: CalendarEvent[] = [
+      { id: "someone-elses", summary: "Dentist" },
+      { id: "team-standup", summary: "Standup", description: "Daily" },
+    ];
+    assert.deepEqual(findOrphanedEvents(foreign, []), []);
+  });
+
+  test("an event with no id is never reported, since it cannot be deleted by id", () => {
+    assert.deepEqual(
+      findOrphanedEvents([{ summary: "No id", description: ACADEMIA_MARK }], []),
+      []
+    );
+  });
+
+  test("with every class deleted, all of ours are reported and nothing else", () => {
+    const events = [ours(live.id, "A"), ours(gone.id, "B"), { id: "x", summary: "Dentist" }];
+    const found = findOrphanedEvents(events, []);
+    assert.deepEqual(found.map((e) => e.summary), ["A", "B"]);
   });
 });

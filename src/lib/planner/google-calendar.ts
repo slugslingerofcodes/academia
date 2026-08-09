@@ -233,6 +233,49 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
+export interface DeleteResult {
+  deleted: number;
+  failed: { label: string; reason: string }[];
+}
+
+/**
+ * Delete events by id.
+ *
+ * The only destructive call in the app, so it deletes exactly the ids it is
+ * given and works nothing out for itself — deciding what deserves deleting is
+ * the caller's job, and the user confirms that list first.
+ *
+ * A 404 or 410 counts as success: the event is already gone, which is the
+ * outcome being asked for.
+ */
+export async function deleteEvents(
+  token: string,
+  events: { id: string; label: string }[]
+): Promise<DeleteResult> {
+  const result: DeleteResult = { deleted: 0, failed: [] };
+  const headers = { Authorization: `Bearer ${token}` };
+
+  for (const { id, label } of events) {
+    try {
+      const res = await fetch(`${API}/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (res.ok || res.status === 404 || res.status === 410) {
+        result.deleted++;
+        continue;
+      }
+      result.failed.push({ label, reason: await readError(res) });
+    } catch (err) {
+      result.failed.push({
+        label,
+        reason: err instanceof Error ? err.message : "Network error",
+      });
+    }
+  }
+  return result;
+}
+
 /**
  * Push every class to the user's primary calendar. Event IDs are derived from
  * our own ids, so re-running updates the same events instead of duplicating.

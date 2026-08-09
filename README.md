@@ -71,6 +71,16 @@ locally in the browser (localStorage) — no account or backend needed.
   unattended. Events Academia wrote itself are skipped, so a class you deleted
   here isn't resurrected by its leftover copy. Needs a Google OAuth client ID
   (see below); until one is set, use the export below.
+- **Clearing up after a deleted class** — sync only ever adds and updates, so
+  deleting a class leaves its event on the calendar for good. **Find leftover
+  events** lists the Academia events no class here maps to, and deletes them
+  once you confirm. Ownership comes from the event id, which is derived from
+  the class id, so nothing the app didn't create is ever a candidate — an event
+  with no id isn't either, since it couldn't be deleted by id anyway. It reads
+  *this device's* timetable as the truth, so a class that lives only on another
+  device will look leftover until you sync; the confirmation step exists for
+  exactly that case. Deleting a repeating event removes the series, and Google
+  keeps it in its bin for 30 days.
 - **Google Calendar export** — download your timetable as a standard `.ics`
   file and import it into Google Calendar once. Google then syncs it to your
   phone and laptop, and each class carries a 10-minute reminder as a native

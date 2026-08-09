@@ -1,5 +1,6 @@
 import { BYDAY_INDEX, interpretSummary, type ImportResult } from "./ics-import";
-import { ACADEMIA_MARK } from "./google-calendar";
+import { ACADEMIA_MARK, toEventId } from "./google-calendar";
+import type { ClassEntry } from "./types";
 
 /**
  * Reads weekly classes back *out* of Google Calendar, so sync runs both ways.
@@ -147,13 +148,13 @@ async function readError(res: Response): Promise<string> {
 }
 
 /**
- * Fetch recurring events from the primary calendar.
+ * Every event on the primary calendar.
  *
  * `singleEvents=false` keeps repeating events as their master entry, so one
  * weekly class arrives once with its RRULE intact rather than as hundreds of
  * separate occurrences.
  */
-export async function fetchCalendarClasses(token: string): Promise<ImportResult> {
+export async function fetchEvents(token: string): Promise<CalendarEvent[]> {
   const params = new URLSearchParams({
     singleEvents: "false",
     showDeleted: "false",
@@ -177,6 +178,11 @@ export async function fetchCalendarClasses(token: string): Promise<ImportResult>
     pageToken = body.nextPageToken;
   } while (pageToken && events.length < 1000);
 
+  return events;
+}
+
+export async function fetchCalendarClasses(token: string): Promise<ImportResult> {
+  const events = await fetchEvents(token);
   const result = eventsToClasses(events);
   if (result.classes.length === 0 && events.length > 0) {
     result.warnings.push(
@@ -184,4 +190,26 @@ export async function fetchCalendarClasses(token: string): Promise<ImportResult>
     );
   }
   return result;
+}
+
+/**
+ * Events Academia wrote whose class no longer exists here.
+ *
+ * Sync only ever creates and updates, so deleting a class leaves its event
+ * behind on the calendar for good. Ownership is decided by the event id, which
+ * is derived from the class id, so a leftover is exactly an Academia event
+ * whose id no current class maps to.
+ *
+ * This treats *this device's* timetable as the truth. A class that exists only
+ * on another device, not yet synced here, has an event that looks orphaned —
+ * which is why the caller has to confirm rather than clean up silently.
+ */
+export function findOrphanedEvents(
+  events: CalendarEvent[],
+  classes: ClassEntry[]
+): CalendarEvent[] {
+  const live = new Set(classes.map((c) => toEventId(c.id)));
+  return events.filter(
+    (e) => isOwnEvent(e) && e.id !== undefined && !live.has(e.id)
+  );
 }

@@ -6,6 +6,7 @@ import {
   Check,
   CloudDownload,
   RefreshCw,
+  Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,19 @@ import { LEAD_MINUTES } from "@/lib/planner/use-class-notifications";
 import { CLASS_HUES, CLASS_TYPE_LABEL } from "@/lib/planner/types";
 import { DAY_NAMES, uid } from "@/lib/planner/schedule";
 import { isDuplicate, type ParsedClass } from "@/lib/planner/ics-import";
-import { fetchCalendarClasses } from "@/lib/planner/google-calendar-import";
 import {
+  fetchCalendarClasses,
+  fetchEvents,
+  findOrphanedEvents,
+  type CalendarEvent,
+} from "@/lib/planner/google-calendar-import";
+import {
+  deleteEvents,
   isConfigured,
   localTimeZone,
   requestAccessToken,
   syncClasses,
+  type DeleteResult,
   type SyncResult,
 } from "@/lib/planner/google-calendar";
 import { Panel } from "./ui";
@@ -120,6 +128,45 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
       setPulling(false);
     }
   }, [store.data.classes]);
+
+  const [sweeping, setSweeping] = useState(false);
+  const [orphans, setOrphans] = useState<CalendarEvent[] | null>(null);
+  const [removed, setRemoved] = useState<DeleteResult | null>(null);
+
+  const findLeftovers = useCallback(async () => {
+    setSweeping(true);
+    setError(null);
+    setRemoved(null);
+    setOrphans(null);
+    try {
+      const token = await requestAccessToken();
+      const events = await fetchEvents(token);
+      setOrphans(findOrphanedEvents(events, store.data.classes));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't read your calendar.");
+    } finally {
+      setSweeping(false);
+    }
+  }, [store.data.classes]);
+
+  const removeLeftovers = useCallback(async () => {
+    if (!orphans || orphans.length === 0) return;
+    setSweeping(true);
+    setError(null);
+    try {
+      const token = await requestAccessToken();
+      const res = await deleteEvents(
+        token,
+        orphans.map((e) => ({ id: e.id!, label: e.summary ?? "Untitled event" }))
+      );
+      setRemoved(res);
+      setOrphans(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete those events.");
+    } finally {
+      setSweeping(false);
+    }
+  }, [orphans]);
 
   const applyIncoming = () => {
     if (!incoming) return;
@@ -287,6 +334,100 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
           timetable on its own. Events Academia created are skipped, so a class
           you deleted here isn&apos;t resurrected by its leftover copy.
         </p>
+      </div>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-muted">
+            Delete a class here and its calendar event stays behind — sync only
+            adds and updates. This finds those leftovers.
+          </span>
+          <Button
+            variant="outline"
+            className="rounded-full px-5"
+            disabled={sweeping}
+            onClick={findLeftovers}
+          >
+            <Trash2 data-icon="inline-start" />
+            {sweeping ? "Working…" : "Find leftover events"}
+          </Button>
+        </div>
+
+        {orphans !== null && orphans.length === 0 && (
+          <p className="mt-4 text-sm text-muted">
+            Nothing left over — every Academia event on your calendar still has
+            a class here.
+          </p>
+        )}
+
+        {orphans !== null && orphans.length > 0 && (
+          <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+            <p className="text-sm font-medium text-foreground">
+              {orphans.length} event{orphans.length === 1 ? "" : "s"} Academia
+              created, with no matching class here:
+            </p>
+            <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-muted">
+              {orphans.slice(0, 10).map((e) => (
+                <li key={e.id}>{e.summary ?? "Untitled event"}</li>
+              ))}
+              {orphans.length > 10 && <li>…and {orphans.length - 10} more</li>}
+            </ul>
+
+            <p className="mt-3 flex gap-2 text-xs text-warn">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                This device&apos;s timetable is the reference. If a class exists
+                only on another device and hasn&apos;t synced here yet, its
+                event will look leftover — sync your devices first, or you
+                &apos;ll delete an event you still want. Deleting a repeating
+                event removes the whole series, and Google Calendar can restore
+                it from its bin for 30 days.
+              </span>
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="destructive"
+                className="rounded-full px-4"
+                disabled={sweeping}
+                onClick={removeLeftovers}
+              >
+                <Trash2 data-icon="inline-start" />
+                {sweeping
+                  ? "Deleting…"
+                  : `Delete ${orphans.length} event${orphans.length === 1 ? "" : "s"}`}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted hover:text-foreground"
+                disabled={sweeping}
+                onClick={() => setOrphans(null)}
+              >
+                Keep them
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {removed && (
+          <div className="mt-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-accent">
+              <Check className="size-4" />
+              Deleted {removed.deleted} event{removed.deleted === 1 ? "" : "s"}.
+            </p>
+            {removed.failed.length > 0 && (
+              <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-destructive">
+                {removed.failed.map((f) => (
+                  <li key={f.label}>
+                    {f.label}: {f.reason}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
