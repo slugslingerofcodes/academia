@@ -55,6 +55,13 @@ locally in the browser (localStorage) — no account or backend needed.
   sessions from several projects are flagged too.
 - **Light and dark** — a Light / Dark / System toggle in the header. The saved
   choice is applied before first paint, so there's no flash of the wrong theme.
+- **Keyboard and screen reader** — the section switcher is a real tablist:
+  arrow keys move between sections, Home and End jump to the ends, and only the
+  active tab is a tab stop, so reaching the content doesn't mean pressing Tab
+  past all seven. A **Skip to content** link comes first in the order. Results
+  and errors from syncing, importing and scanning are announced rather than
+  appearing silently, and an operating-system request for reduced motion
+  shortens every transition.
 - **Holidays cancel classes, and nothing else** — mark any date as a holiday
   and class reminders pause, the week view flags it, and the class drops out of
   the exported calendar. Your own tasks and projects carry on: a deadline

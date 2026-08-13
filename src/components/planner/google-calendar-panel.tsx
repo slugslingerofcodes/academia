@@ -219,7 +219,7 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
       </div>
 
       {result && (
-        <div className="mt-4 rounded-xl border border-accent/40 bg-accent-faint p-4">
+        <div role="status" className="mt-4 rounded-xl border border-accent/40 bg-accent-faint p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-accent">
             <Check className="size-4" />
             {result.created} added, {result.updated} updated.
@@ -322,7 +322,7 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
         )}
 
         {imported !== null && (
-          <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+          <p role="status" className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
             <Check className="size-4" />
             Added {imported} class{imported === 1 ? "" : "es"} to your timetable.
           </p>
@@ -412,7 +412,7 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
         )}
 
         {removed && (
-          <div className="mt-4">
+          <div role="status" className="mt-4">
             <p className="flex items-center gap-2 text-sm font-medium text-accent">
               <Check className="size-4" />
               Deleted {removed.deleted} event{removed.deleted === 1 ? "" : "s"}.
@@ -431,7 +431,7 @@ export function GoogleCalendarPanel({ store }: { store: PlannerStore }) {
       </div>
 
       {error && (
-        <p className="mt-4 flex items-center gap-2 text-sm text-destructive">
+        <p role="alert" className="mt-4 flex items-center gap-2 text-sm text-destructive">
           <TriangleAlert className="size-4" />
           {error}
         </p>

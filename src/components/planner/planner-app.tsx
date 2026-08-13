@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   CalendarDays,
   CalendarRange,
@@ -52,9 +52,34 @@ export function PlannerApp() {
   // signed-in account + background sync with the copy held in Drive
   const sync = useAccountSync(store.data, store.replaceAll);
   const [tab, setTab] = useState<TabId>("missions");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  /*
+   * Arrow keys move between tabs, which is what a tablist is expected to do —
+   * without it, reaching the last tab means seven presses of Tab, and every one
+   * of those stops is also a stop on the way to the content.
+   */
+  const onTabKeyDown = (event: React.KeyboardEvent, index: number) => {
+    const last = TABS.length - 1;
+    const next =
+      event.key === "ArrowRight" ? (index === last ? 0 : index + 1)
+      : event.key === "ArrowLeft" ? (index === 0 ? last : index - 1)
+      : event.key === "Home" ? 0
+      : event.key === "End" ? last
+      : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    setTab(TABS[next].id);
+    tabRefs.current[next]?.focus();
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 md:px-6">
+      {/* the tab bar sits between the header and the content, so a keyboard
+          user would otherwise cross all seven tabs to reach what they came for */}
+      <a href="#planner-content" className="skip-link">
+        Skip to content
+      </a>
       <header className="flex flex-wrap items-end justify-between gap-4 pt-8 pb-6">
         <div className="flex items-center gap-4">
           {/* the real crest is layered over the placeholder as a background
@@ -87,42 +112,67 @@ export function PlannerApp() {
       <ServiceWorkerRegistrar />
       <InstallPrompt />
 
-      <nav className="mb-6 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-border bg-secondary p-1">
-        {TABS.map((t) => (
+      <div
+        role="tablist"
+        aria-label="Planner sections"
+        className="mb-6 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-border bg-secondary p-1"
+      >
+        {TABS.map((t, i) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls="planner-content"
+            // only the active tab is a tab stop; arrows move within the list
+            tabIndex={tab === t.id ? 0 : -1}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
+            onKeyDown={(e) => onTabKeyDown(e, i)}
             onClick={() => setTab(t.id)}
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+              "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
               tab === t.id
                 ? "bg-card text-accent shadow-[var(--shadow-raised)]"
                 : "text-muted hover:text-foreground"
             )}
           >
-            <t.icon className="size-4" />
+            <t.icon className="size-4" aria-hidden="true" />
             {t.label}
           </button>
         ))}
-      </nav>
+      </div>
 
-      {!store.hydrated ? (
-        // reserve roughly a screen of height: the planner only exists after
-        // hydration, and collapsing to a short box first shifts the whole page
-        <div className="flex min-h-[70vh] items-start justify-center py-24 text-sm text-muted">
-          Loading…
-        </div>
-      ) : (
-        <>
-          {tab === "missions" && <TasksTab store={store} />}
-          {tab === "timetable" && <TimetableTab store={store} alerts={alerts} />}
-          {tab === "upcoming" && <UpcomingTab store={store} />}
-          {tab === "holidays" && <HolidaysTab store={store} />}
-          {tab === "think" && <ThinkTab store={store} />}
-          {tab === "resume" && <ResumeTab store={store} />}
-          {tab === "devices" && <DevicesTab store={store} sync={sync} />}
-        </>
-      )}
+      <main
+        id="planner-content"
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        tabIndex={-1}
+      >
+        {!store.hydrated ? (
+          // reserve roughly a screen of height: the planner only exists after
+          // hydration, and collapsing to a short box first shifts the whole page
+          <div
+            role="status"
+            className="flex min-h-[70vh] items-start justify-center py-24 text-sm text-muted"
+          >
+            Loading…
+          </div>
+        ) : (
+          <>
+            {tab === "missions" && <TasksTab store={store} />}
+            {tab === "timetable" && <TimetableTab store={store} alerts={alerts} />}
+            {tab === "upcoming" && <UpcomingTab store={store} />}
+            {tab === "holidays" && <HolidaysTab store={store} />}
+            {tab === "think" && <ThinkTab store={store} />}
+            {tab === "resume" && <ResumeTab store={store} />}
+            {tab === "devices" && <DevicesTab store={store} sync={sync} />}
+          </>
+        )}
+      </main>
     </div>
   );
 }

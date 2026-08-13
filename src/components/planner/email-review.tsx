@@ -108,14 +108,14 @@ export function EmailReviewPanel({ store }: { store: PlannerStore }) {
       </div>
 
       {error && (
-        <p className="mt-4 flex items-center gap-2 text-sm text-destructive">
+        <p role="alert" className="mt-4 flex items-center gap-2 text-sm text-destructive">
           <TriangleAlert className="size-4" />
           {error}
         </p>
       )}
 
       {applied.length > 0 && (
-        <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+        <p role="status" className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
           <Check className="size-4" />
           Applied {applied.length} change{applied.length === 1 ? "" : "s"} to your
           timetable.

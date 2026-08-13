@@ -182,3 +182,50 @@ body {
     -webkit-print-color-adjust: exact;
   }
 }
+
+/*
+ * Respect an operating-system request for less motion.
+ *
+ * Reduced motion is an accessibility setting, not a preference for a duller
+ * app: for people prone to motion sickness or vestibular symptoms, movement
+ * they didn't ask for can be genuinely unpleasant. Transitions are cut to
+ * effectively nothing rather than removed, so anything that waits on
+ * transitionend still fires.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Skip link: off-screen until focused, then it slides into the corner.
+ *
+ * Deliberately not Tailwind's `sr-only focus:not-sr-only` — that pair leaves
+ * `clip-path: inset(50%)` applied even while focused, so the link takes focus
+ * while staying invisible, which is worse than not having one. Kept in the
+ * layout and moved out of view instead, so nothing has to un-clip it.
+ */
+.skip-link {
+  position: absolute;
+  top: -4rem;
+  left: 1rem;
+  z-index: 50;
+  border-radius: var(--radius-lg, 0.5rem);
+  background: var(--card);
+  box-shadow: var(--shadow-raised);
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}

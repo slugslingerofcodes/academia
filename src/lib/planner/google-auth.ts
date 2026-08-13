@@ -1,6 +1,11 @@
 "use client";
 
-import { DRIVE_SCOPE, isConfigured, requestAccessToken } from "./google-calendar";
+import {
+  clearTokenCache,
+  DRIVE_SCOPE,
+  isConfigured,
+  requestAccessToken,
+} from "./google-calendar";
 
 /**
  * Account identity via Sign in with Google.
@@ -76,6 +81,9 @@ export async function signIn(): Promise<{ account: Account; token: string }> {
 }
 
 export function signOut() {
+  // drop the held tokens too, or the next sign-in would silently reuse the
+  // grant of the account just signed out of
+  clearTokenCache();
   store(null);
 }
 

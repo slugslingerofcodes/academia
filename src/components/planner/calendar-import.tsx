@@ -166,7 +166,7 @@ export function CalendarImportPanel({ store }: { store: PlannerStore }) {
       )}
 
       {added !== null && (
-        <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+        <p role="status" className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
           <Check className="size-4" />
           Added {added} class{added === 1 ? "" : "es"} to your timetable.
         </p>

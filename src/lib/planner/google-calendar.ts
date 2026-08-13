@@ -40,6 +40,8 @@ export function localTimeZone(): string {
 
 interface TokenResponse {
   access_token?: string;
+  /** Lifetime in seconds — about an hour in practice. */
+  expires_in?: number;
   error?: string;
 }
 interface TokenClient {
@@ -84,7 +86,76 @@ function loadGis(): Promise<void> {
 }
 
 /**
- * Opens Google's consent popup and resolves with an access token.
+ * Tokens already granted, per scope.
+ *
+ * Google's token client shows the account chooser on *every* call by default,
+ * so asking afresh each time meant a popup for each action — and two in a row
+ * for anything that reads and then writes. Access tokens last about an hour,
+ * so holding them until they expire removes nearly all of those prompts.
+ *
+ * Memory only: writing an access token to storage would leave a live
+ * credential on disk for anything else on the device to read.
+ */
+interface CachedToken {
+  token: string;
+  expiresAt: number;
+}
+const tokenCache = new Map<string, CachedToken>();
+const inFlight = new Map<string, Promise<string>>();
+
+/** Renew slightly early, so a token can't expire mid-request. */
+const RENEW_MARGIN_MS = 60_000;
+
+function cachedToken(scope: string): string | null {
+  const hit = tokenCache.get(scope);
+  if (!hit) return null;
+  if (hit.expiresAt - RENEW_MARGIN_MS > Date.now()) return hit.token;
+  tokenCache.delete(scope);
+  return null;
+}
+
+/** Drop every held token — on sign-out, or after one is revoked. */
+export function clearTokenCache(): void {
+  tokenCache.clear();
+  inFlight.clear();
+}
+
+function askGoogle(scope: string, silent: boolean): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const oauth2 = window.google?.accounts.oauth2;
+    if (!oauth2) {
+      reject(new Error("Google sign-in is unavailable."));
+      return;
+    }
+    const client = oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope,
+      callback: (res) => {
+        if (res.error || !res.access_token) {
+          reject(new Error(res.error ?? "Google sign-in was cancelled."));
+          return;
+        }
+        tokenCache.set(scope, {
+          token: res.access_token,
+          // assume the shortest sensible life if Google doesn't say
+          expiresAt: Date.now() + (res.expires_in ?? 600) * 1000,
+        });
+        resolve(res.access_token);
+      },
+    });
+    // prompt:'' reuses an existing grant with no UI at all; it fails rather
+    // than showing a popup, which is what a silent attempt wants
+    client.requestAccessToken(silent ? { prompt: "" } : undefined);
+  });
+}
+
+/**
+ * An access token for `scope`, reusing one already granted where possible.
+ *
+ * A held token is returned outright. Otherwise a silent attempt runs first,
+ * which succeeds whenever consent was given earlier in the session and costs
+ * nothing when it fails; only then does the consent popup appear. With
+ * `silent`, the popup is never reached.
  *
  * The scope is passed in so each feature asks only for what it needs — using
  * calendar sync never requests access to Drive, and vice versa.
@@ -94,29 +165,32 @@ export async function requestAccessToken(
   options: { silent?: boolean } = {}
 ): Promise<string> {
   if (!isConfigured()) throw new Error("Google client ID is not configured.");
-  await loadGis();
-  const oauth2 = window.google?.accounts.oauth2;
-  if (!oauth2) throw new Error("Google sign-in is unavailable.");
 
-  return new Promise((resolve, reject) => {
-    const client = oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope,
-      callback: (res) => {
-        if (res.error || !res.access_token) {
-          reject(new Error(res.error ?? "Google sign-in was cancelled."));
-          return;
-        }
-        resolve(res.access_token);
-      },
-    });
-    // prompt:'' reuses an existing grant without any UI; it fails rather than
-    // showing a popup, which is what background syncing wants
-    client.requestAccessToken(options.silent ? { prompt: "" } : undefined);
-  });
+  const held = cachedToken(scope);
+  if (held) return held;
+
+  // two panels asking at once should share one popup, not race to open two
+  const key = `${scope}|${options.silent ? "silent" : "interactive"}`;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+
+  const attempt = (async () => {
+    await loadGis();
+    try {
+      return await askGoogle(scope, true);
+    } catch (err) {
+      if (options.silent) throw err;
+      // no existing grant to reuse, so ask properly
+      return await askGoogle(scope, false);
+    }
+  })().finally(() => inFlight.delete(key));
+
+  inFlight.set(key, attempt);
+  return attempt;
 }
 
 export async function revokeAccessToken(token: string): Promise<void> {
+  clearTokenCache();
   await loadGis();
   window.google?.accounts.oauth2.revoke(token);
 }
