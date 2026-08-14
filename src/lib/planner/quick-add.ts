@@ -242,13 +242,24 @@ function yearFor(month: number, now: Date): number {
   return month < now.getMonth() - 6 ? now.getFullYear() + 1 : now.getFullYear();
 }
 
+/**
+ * The kind of session, and the word that said so.
+ *
+ * The *last* such word is the one consumed, because the first is often part of
+ * the subject's own name: in "Biology Laboratory lab", "Laboratory" names the
+ * subject and the trailing "lab" is the kind. Taking the first left the subject
+ * called "Biology lab".
+ */
 function parseType(text: string): { type: ClassType; consumed: string | null } {
-  const lab = text.match(/\blab(oratory|s)?\b/i);
-  if (lab) return { type: "lab", consumed: lab[0] };
-  const tut = text.match(/\btut(orial|orials|s)?\b/i);
-  if (tut) return { type: "tutorial", consumed: tut[0] };
-  const lec = text.match(/\blectures?\b/i);
-  return { type: "lecture", consumed: lec ? lec[0] : null };
+  const last = (re: RegExp) => {
+    const all = [...text.matchAll(new RegExp(re.source, "gi"))];
+    return all.length > 0 ? all[all.length - 1][0] : null;
+  };
+  const lab = last(/\blab(oratory|s)?\b/);
+  if (lab) return { type: "lab", consumed: lab };
+  const tut = last(/\btut(orial|orials|s)?\b/);
+  if (tut) return { type: "tutorial", consumed: tut };
+  return { type: "lecture", consumed: last(/\blectures?\b/) };
 }
 
 /** Whatever is left once the recognised parts are taken out. */

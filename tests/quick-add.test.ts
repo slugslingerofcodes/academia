@@ -135,6 +135,21 @@ describe("adding a class", () => {
     assert.equal(parsed?.kind === "class" && parsed.end, "10:00");
   });
 
+  /*
+   * The kind word is often part of the subject's own name. Consuming the first
+   * one left "BIO F110 Biology Laboratory lab …" titled "Biology lab".
+   */
+  test("a trailing kind word is consumed, not one inside the subject's name", () => {
+    const { parsed } = parse("BIO F110 Biology Laboratory lab Mon and Wed 2-4pm in LT3");
+    assert.equal(parsed?.kind === "class" && parsed.title, "Biology Laboratory");
+    assert.equal(parsed?.kind === "class" && parsed.type, "lab");
+  });
+
+  test("with only the name's own word, the kind is still read from it", () => {
+    const { parsed } = parse("BIO F110 Biology Laboratory Mon 2-4pm");
+    assert.equal(parsed?.kind === "class" && parsed.type, "lab");
+  });
+
   test("a subject with no code keeps its whole name as the title", () => {
     const { parsed } = parse("Swimming Sat 7am");
     assert.equal(parsed?.kind === "class" && parsed.code, undefined);
