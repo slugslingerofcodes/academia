@@ -43,6 +43,7 @@ import { TimetableGrid } from "./timetable-grid";
 import { CalendarImportPanel } from "./calendar-import";
 import { EmailReviewPanel } from "./email-review";
 import { ExceptionsPanel } from "./exceptions-panel";
+import { QuickAddPanel } from "./quick-add-panel";
 import { CalendarSyncPanel } from "./calendar-sync";
 import { GoogleCalendarPanel } from "./google-calendar-panel";
 
@@ -380,6 +381,8 @@ export function TimetableTab({ store, alerts }: { store: PlannerStore; alerts: C
       ) : (
         <WeekGrid store={store} onEdit={edit} />
       )}
+
+      <QuickAddPanel store={store} />
 
       <div id="class-form">
         <ClassForm

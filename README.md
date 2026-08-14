@@ -42,6 +42,16 @@ locally in the browser (localStorage) — no account or backend needed.
   configurable, it fires at most once a day, and it catches up if the app wasn't
   open at that hour. On a holiday it still reports deadlines and work sessions —
   those don't move for a day off — while classes stay muted.
+- **Type it instead** — write one line and Academia works out what you meant:
+  `MATH F111 Mathematics I lecture Mon 9-10 in LT1` adds a weekly class,
+  `CS F111 lab Tue and Thu 2-4pm in D201` adds one on both days,
+  `holiday on 26 June for Muharram` marks a holiday, and
+  `cancel CS F111 on 18 Aug` records a one-off cancellation. The reading is
+  shown field by field as you type and nothing is added until you confirm,
+  because free text is ambiguous where a form isn't. When a line can't be read
+  it says which part is missing rather than guessing — no day, no time, no
+  name, or a date the class doesn't actually meet on. It's all plain rules, no
+  model and no network, so it works offline.
 - **One-off changes** — a class repeats weekly, so "this Thursday's lecture is
   cancelled" can't be recorded by editing the class without wiping every other
   week. Record it as a one-off instead: cancelled, rescheduled, or a room
