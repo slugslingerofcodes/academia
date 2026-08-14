@@ -1,12 +1,29 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Sparkles, TriangleAlert, Wand2 } from "lucide-react";
+import { Check, CloudUpload, Sparkles, TriangleAlert, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlannerStore } from "@/lib/planner/use-planner";
-import { CLASS_HUES, classLabel } from "@/lib/planner/types";
+import {
+  CLASS_HUES,
+  classLabel,
+  type ClassEntry,
+  type ClassException,
+  type Holiday,
+  type PlannerData,
+} from "@/lib/planner/types";
 import { DAY_NAMES, uid } from "@/lib/planner/schedule";
-import { parseQuickAdd, type QuickAdd } from "@/lib/planner/quick-add";
+import { LEAD_MINUTES } from "@/lib/planner/use-class-notifications";
+import {
+  isConfigured,
+  requestAccessToken,
+  syncClasses,
+} from "@/lib/planner/google-calendar";
+import {
+  classesTouchedBy,
+  parseQuickAdd,
+  type QuickAdd,
+} from "@/lib/planner/quick-add";
 import { inputCls, Panel } from "./ui";
 
 const EXAMPLES = [
@@ -40,9 +57,20 @@ function summarise(add: QuickAdd): string {
  * can't be read, the panel says which part is missing rather than adding a
  * half-understood entry.
  */
+type PushState =
+  | { stage: "idle" }
+  | { stage: "pushing" }
+  | { stage: "done"; count: number }
+  | { stage: "nothing" }
+  | { stage: "error"; message: string };
+
 export function QuickAddPanel({ store }: { store: PlannerStore }) {
   const [text, setText] = useState("");
   const [added, setAdded] = useState<string | null>(null);
+  const [push, setPush] = useState<PushState>({ stage: "idle" });
+
+  const configured = isConfigured();
+  const pushOn = configured && store.data.settings.pushOnQuickAdd;
 
   // reading as you type: the preview is the whole point, so it can't wait
   const result = useMemo(
@@ -50,14 +78,51 @@ export function QuickAddPanel({ store }: { store: PlannerStore }) {
     [text, store.data]
   );
 
+  /**
+   * Send the affected classes on to Google Calendar.
+   *
+   * `next` is built by the caller rather than read from the store: the store
+   * updates on a later render, so reading it here would push a holiday's
+   * classes without the holiday, and the event would keep the date it should
+   * have dropped.
+   */
+  const pushToGoogle = async (add: QuickAdd, created: ClassEntry[], next: PlannerData) => {
+    const affected = classesTouchedBy(add, created, next.classes);
+    if (affected.length === 0) {
+      setPush({ stage: "nothing" });
+      return;
+    }
+    setPush({ stage: "pushing" });
+    try {
+      const token = await requestAccessToken();
+      const res = await syncClasses(next, token, LEAD_MINUTES, affected);
+      if (res.failed.length > 0 && res.created + res.updated === 0) {
+        setPush({ stage: "error", message: res.failed[0].reason });
+      } else {
+        setPush({ stage: "done", count: res.created + res.updated });
+      }
+    } catch (err) {
+      setPush({
+        stage: "error",
+        message: err instanceof Error ? err.message : "Couldn't reach Google Calendar.",
+      });
+    }
+  };
+
   const commit = () => {
     const add = result.parsed;
     if (!add) return;
+    setPush({ stage: "idle" });
+
+    let created: ClassEntry[] = [];
+    let next: PlannerData = store.data;
 
     if (add.kind === "holiday") {
-      store.addHoliday({ id: uid(), date: add.date, label: add.label });
+      const holiday: Holiday = { id: uid(), date: add.date, label: add.label };
+      store.addHoliday(holiday);
+      next = { ...store.data, holidays: [...store.data.holidays, holiday] };
     } else if (add.kind === "exception") {
-      store.addException({
+      const exception: ClassException = {
         id: uid(),
         classId: add.cls.id,
         date: add.date,
@@ -66,26 +131,38 @@ export function QuickAddPanel({ store }: { store: PlannerStore }) {
         end: add.end,
         location: add.location,
         source: "Typed in",
-      });
+      };
+      store.addException(exception);
+      next = {
+        ...store.data,
+        // one per class per date, matching how the store stores them
+        exceptions: [
+          ...store.data.exceptions.filter(
+            (x) => !(x.classId === exception.classId && x.date === exception.date)
+          ),
+          exception,
+        ],
+      };
     } else {
       // a class naming several days is one entry per day, as the timetable expects
-      store.addClasses(
-        add.days.map((day) => ({
-          id: uid(),
-          code: add.code,
-          title: add.title,
-          type: add.type,
-          day,
-          start: add.start,
-          end: add.end,
-          location: add.location,
-          hue: CLASS_HUES[0],
-        }))
-      );
+      created = add.days.map((day) => ({
+        id: uid(),
+        code: add.code,
+        title: add.title,
+        type: add.type,
+        day,
+        start: add.start,
+        end: add.end,
+        location: add.location,
+        hue: CLASS_HUES[0],
+      }));
+      store.addClasses(created);
+      next = { ...store.data, classes: [...store.data.classes, ...created] };
     }
 
     setAdded(summarise(add));
     setText("");
+    if (pushOn) void pushToGoogle(add, created, next);
   };
 
   return (
@@ -181,10 +258,52 @@ export function QuickAddPanel({ store }: { store: PlannerStore }) {
         </p>
       )}
 
-      <p className="mt-3 text-xs text-muted">
-        This changes your timetable here. To put it in Google Calendar too, use
-        the sync below.
-      </p>
+      {push.stage !== "idle" && (
+        <p
+          role="status"
+          className={`mt-2 flex items-center gap-2 text-sm ${
+            push.stage === "error" ? "text-destructive" : "text-muted"
+          }`}
+        >
+          {push.stage === "error" ? (
+            <TriangleAlert className="size-4 shrink-0" />
+          ) : (
+            <CloudUpload className="size-4 shrink-0" />
+          )}
+          {push.stage === "pushing" && "Writing it to Google Calendar…"}
+          {push.stage === "done" &&
+            `Written to Google Calendar — ${push.count} event${push.count === 1 ? "" : "s"} updated.`}
+          {push.stage === "nothing" &&
+            "Nothing to write to Google Calendar — no class meets that day."}
+          {push.stage === "error" && `Google Calendar: ${push.message}`}
+        </p>
+      )}
+
+      {configured ? (
+        <label className="mt-4 flex cursor-pointer items-start gap-2 border-t border-border pt-4 text-sm text-foreground">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[var(--accent)]"
+            checked={store.data.settings.pushOnQuickAdd}
+            onChange={(e) => store.updateSettings({ pushOnQuickAdd: e.target.checked })}
+          />
+          <span>
+            Write to Google Calendar as well
+            <span className="mt-0.5 block text-xs text-muted">
+              Pushes the classes this affects as soon as you add it, and
+              remembers the choice. A holiday or a one-off change has no event
+              of its own — it rewrites the classes it applies to, so the date
+              drops out of the series. A rescheduled class is removed from that
+              week rather than moved, the same as the sync below.
+            </span>
+          </span>
+        </label>
+      ) : (
+        <p className="mt-3 text-xs text-muted">
+          This changes your timetable here. To put it in Google Calendar too,
+          use the sync below.
+        </p>
+      )}
     </Panel>
   );
 }

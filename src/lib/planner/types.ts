@@ -158,11 +158,19 @@ export interface PlannerSettings {
   digestEnabled: boolean;
   /** 24h "HH:MM" — when that summary fires. */
   digestTime: string;
+  /**
+   * Push straight to Google Calendar when something is typed in.
+   *
+   * Off until asked for: it writes to an account outside this app, and that
+   * shouldn't start happening because someone added a class.
+   */
+  pushOnQuickAdd: boolean;
 }
 
 export const DEFAULT_SETTINGS: PlannerSettings = {
   digestEnabled: true,
   digestTime: "08:00",
+  pushOnQuickAdd: false,
 };
 
 /**

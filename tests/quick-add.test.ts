@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
+  classesTouchedBy,
   parseQuickAdd,
   parseTimeRange,
   parseRoom,
@@ -232,6 +233,43 @@ describe("changing one occurrence of a class", () => {
     const res = parse("cancel MATH F111");
     assert.equal(res.parsed, null);
     assert.match(res.problem ?? "", /date/i);
+  });
+});
+
+describe("what has to be pushed to Google Calendar", () => {
+  const created: ClassEntry[] = [cls("n", "NEW F101", "New Subject", 0, "09:00", "10:00")];
+
+  test("a new class is itself the thing to push", () => {
+    const { parsed } = parse("NEW F101 New Subject lecture Mon 9-10");
+    assert.deepEqual(
+      classesTouchedBy(parsed!, created, data.classes).map((c) => c.id),
+      ["n"]
+    );
+  });
+
+  test("a one-off change rewrites the single class it names", () => {
+    const { parsed } = parse("cancel MATH F111 on 13 Aug");
+    assert.deepEqual(
+      classesTouchedBy(parsed!, [], data.classes).map((c) => c.id),
+      ["m"]
+    );
+  });
+
+  /*
+   * A holiday has no event of its own — it shows up as a date dropped from
+   * every class meeting that weekday, so those are what need rewriting.
+   */
+  test("a holiday rewrites every class that meets that weekday", () => {
+    const { parsed } = parse("holiday on 13 Aug"); // a Thursday
+    assert.deepEqual(
+      classesTouchedBy(parsed!, [], data.classes).map((c) => c.id),
+      ["m"]
+    );
+  });
+
+  test("a holiday on a day with no classes needs nothing pushed", () => {
+    const { parsed } = parse("holiday on 15 Aug"); // a Saturday
+    assert.deepEqual(classesTouchedBy(parsed!, [], data.classes), []);
   });
 });
 

@@ -51,7 +51,11 @@ locally in the browser (localStorage) — no account or backend needed.
   because free text is ambiguous where a form isn't. When a line can't be read
   it says which part is missing rather than guessing — no day, no time, no
   name, or a date the class doesn't actually meet on. It's all plain rules, no
-  model and no network, so it works offline.
+  model and no network, so it works offline. Tick **Write to Google Calendar as
+  well** and it pushes as soon as you add — off until you ask for it, then
+  remembered. What gets pushed isn't always the obvious thing: a holiday and a
+  one-off change have no event of their own, so they rewrite the classes they
+  apply to, which is how the date drops out of the series.
 - **One-off changes** — a class repeats weekly, so "this Thursday's lecture is
   cancelled" can't be recorded by editing the class without wiping every other
   week. Record it as a one-off instead: cancelled, rescheduled, or a room

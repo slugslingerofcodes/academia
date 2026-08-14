@@ -97,6 +97,28 @@ export interface QuickAddResult {
   understood: ParsedField[];
 }
 
+/**
+ * Which classes need pushing to Google Calendar after this was added.
+ *
+ * Not always the obvious one. A holiday creates no event of its own — it shows
+ * up as a date dropped from the series of every class that meets that weekday,
+ * so those are what must be rewritten. A one-off change works the same way, on
+ * the single class it names. Only a new class is itself the thing to push.
+ *
+ * `created` is passed in because a new class only has an id once it's been
+ * added, which happens after the line is read.
+ */
+export function classesTouchedBy(
+  add: QuickAdd,
+  created: ClassEntry[],
+  existing: ClassEntry[]
+): ClassEntry[] {
+  if (add.kind === "class") return created;
+  if (add.kind === "exception") return [add.cls];
+  const weekday = weekdayIndex(parseDateKey(add.date));
+  return existing.filter((c) => c.day === weekday);
+}
+
 /* ---- small parsers, each removing what it consumed ---- */
 
 /**

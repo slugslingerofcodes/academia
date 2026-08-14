@@ -357,7 +357,15 @@ export async function deleteEvents(
 export async function syncClasses(
   data: PlannerData,
   token: string,
-  leadMinutes: number
+  leadMinutes: number,
+  /**
+   * Push only these classes rather than the whole timetable.
+   *
+   * Holidays and exceptions still come from `data`, because they decide which
+   * dates drop out of the series — a partial push has to see all of them or it
+   * would write an event that ignores a holiday.
+   */
+  only?: ClassEntry[]
 ): Promise<SyncResult> {
   const result: SyncResult = { created: 0, updated: 0, failed: [] };
   const headers = {
@@ -365,7 +373,7 @@ export async function syncClasses(
     "Content-Type": "application/json",
   };
 
-  for (const cls of data.classes) {
+  for (const cls of only ?? data.classes) {
     const event = classToEvent(
       cls,
       data.holidays,
