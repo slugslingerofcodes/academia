@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { CalendarRange, CircleAlert, TreePalm } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
-import { CLASS_TYPE_LABEL, classLabel } from "@/lib/planner/types";
+import { CLASS_TYPE_LABEL, classDetails, classLabel } from "@/lib/planner/types";
 import { DAY_NAMES, formatDateKey } from "@/lib/planner/schedule";
 import {
   buildAgenda,
@@ -66,6 +66,7 @@ function ClassesCell({ day }: { day: AgendaDay }) {
           <span className="text-xs text-muted">
             {CLASS_TYPE_LABEL[c.cls.type]}
             {c.location ? ` · ${c.location}` : ""}
+            {classDetails(c.cls) ? ` · ${classDetails(c.cls)}` : ""}
           </span>
           {c.cancelled && (
             <span className="text-xs font-medium text-destructive">Cancelled</span>

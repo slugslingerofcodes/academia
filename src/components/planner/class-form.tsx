@@ -62,6 +62,8 @@ export function ClassForm({
   const [code, setCode] = useState(editing?.code ?? "");
   const [title, setTitle] = useState(editing?.title ?? "");
   const [type, setType] = useState<ClassType>(editing?.type ?? "lecture");
+  const [instructor, setInstructor] = useState(editing?.instructor ?? "");
+  const [section, setSection] = useState(editing?.section ?? "");
   const [slots, setSlots] = useState<DaySlot[]>(() =>
     editing ? slotsForEdit(editing) : blankSlots()
   );
@@ -99,6 +101,8 @@ export function ClassForm({
       code: code.trim() || undefined,
       title: title.trim() || code.trim(),
       type,
+      instructor: instructor.trim() || undefined,
+      section: section.trim() || undefined,
     };
 
     if (editing) {
@@ -139,6 +143,8 @@ export function ClassForm({
     );
     setCode("");
     setTitle("");
+    setInstructor("");
+    setSection("");
     setSlots(blankSlots());
     setError(null);
   };
@@ -183,6 +189,22 @@ export function ClassForm({
                 </option>
               ))}
             </select>
+          </Field>
+          <Field label="Instructor (optional)" className="sm:col-span-1 lg:col-span-2">
+            <input
+              className={inputCls}
+              value={instructor}
+              placeholder="e.g. Dr A. Rao"
+              onChange={(e) => setInstructor(e.target.value)}
+            />
+          </Field>
+          <Field label="Section (optional)">
+            <input
+              className={inputCls}
+              value={section}
+              placeholder="e.g. L3"
+              onChange={(e) => setSection(e.target.value)}
+            />
           </Field>
         </div>
 

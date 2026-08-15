@@ -1,5 +1,5 @@
 import type { ClassEntry, ClassException, Holiday, PlannerData } from "./types";
-import { classLabel, CLASS_TYPE_LABEL } from "./types";
+import { classDetails, classLabel, CLASS_TYPE_LABEL } from "./types";
 import {
   addDays,
   currentWeekDates,
@@ -124,6 +124,7 @@ function classEvent(
     ...(exdates.length > 0 ? [`EXDATE:${exdates.join(",")}`] : []),
     `SUMMARY:${esc(`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]})`)}`,
     ...(cls.location ? [`LOCATION:${esc(cls.location)}`] : []),
+    ...(classDetails(cls) ? [`DESCRIPTION:${esc(classDetails(cls))}`] : []),
     ...alarm(classLabel(cls), leadMinutes),
     "END:VEVENT",
   ];

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
 import {
   CLASS_TYPE_LABEL,
+  classDetails,
   classLabel,
   type ClassEntry,
   type ClassType,
@@ -177,9 +178,13 @@ export function TimetableGrid({
                           width: `calc(${100 / lanes}% - 4px)`,
                           borderLeftColor: TYPE_COLOR[cls.type],
                         }}
+                        /* the block is too small for another line, so the
+                           teaching details live in the tooltip */
                         title={`${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]}) ${from}–${until}${
                           occurrence?.location ? ` · ${occurrence.location}` : ""
-                        }${cancelled ? " — cancelled" : occurrence?.changed ? " — rescheduled" : ""}`}
+                        }${classDetails(cls) ? ` · ${classDetails(cls)}` : ""}${
+                          cancelled ? " — cancelled" : occurrence?.changed ? " — rescheduled" : ""
+                        }`}
                       >
                         <div
                           className={cn(

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { PlannerStore } from "@/lib/planner/use-planner";
 import {
   CLASS_TYPE_LABEL,
+  classDetails,
   classLabel,
   type ClassEntry,
   type ClassType,
@@ -294,6 +295,11 @@ function WeekGrid({
                       <span className="font-medium text-warn">· Rescheduled</span>
                     )}
                   </div>
+                  {classDetails(cls) && (
+                    <div className="mt-0.5 text-xs text-muted/80">
+                      {classDetails(cls)}
+                    </div>
+                  )}
                   {/* always visible: on a touch screen there is no hover, so
                       hiding these behind :hover made them unreachable on phones */}
                   <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5">

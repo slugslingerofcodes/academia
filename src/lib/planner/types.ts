@@ -52,7 +52,20 @@ export interface ClassEntry {
   start: string;
   end: string;
   location?: string;
+  /** Who teaches it. Optional — plenty of timetables never record it. */
+  instructor?: string;
+  /** Section or batch, e.g. "L3" or "P2". Optional for the same reason. */
+  section?: string;
   hue: ClassHue;
+}
+
+/**
+ * The teaching details, as one line — "Dr Rao · L3" — or empty when neither is
+ * recorded. Both are optional, so every caller would otherwise repeat the same
+ * two null checks and the same separator.
+ */
+export function classDetails(cls: ClassEntry): string {
+  return [cls.instructor, cls.section].filter(Boolean).join(" · ");
 }
 
 /** How a class is labelled in the UI, calendar events and reminders. */

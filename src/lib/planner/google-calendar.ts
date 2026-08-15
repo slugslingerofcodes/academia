@@ -1,5 +1,5 @@
 import type { ClassEntry, ClassException, Holiday, PlannerData } from "./types";
-import { classLabel, CLASS_TYPE_LABEL } from "./types";
+import { classDetails, classLabel, CLASS_TYPE_LABEL } from "./types";
 import {
   currentWeekDates,
   minutesOf,
@@ -279,7 +279,8 @@ export function classToEvent(
     id: toEventId(cls.id),
     summary: `${classLabel(cls)} (${CLASS_TYPE_LABEL[cls.type]})`,
     ...(cls.location ? { location: cls.location } : {}),
-    description: ACADEMIA_MARK,
+    // the marker stays first, since isOwnEvent looks for it here
+    description: [ACADEMIA_MARK, classDetails(cls)].filter(Boolean).join("\n"),
     start: { dateTime: rfc3339(start), timeZone: tz },
     end: { dateTime: rfc3339(end), timeZone: tz },
     recurrence,

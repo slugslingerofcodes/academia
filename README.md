@@ -25,6 +25,11 @@ locally in the browser (localStorage) — no account or backend needed.
   cancelled or moved by an exception stays visible with a marker and its new
   time, because that's specific information worth seeing. Weeks with nothing in
   them are hidden by default.
+- **Instructor and section** — both optional, on top of the code, name, kind,
+  times and room. Add them when a class is created or later by editing it, and
+  they show in the list and Upcoming views, in the chart's tooltip, and in the
+  description of the exported calendar event. Classes added before these
+  existed simply don't have them; nothing needs migrating.
 - **Weekly Timetable** — add a subject once with its code, name and kind
   (lecture / lab / tutorial), ticking every day it meets and giving each day its
   own times and room. View it as a **chart** (time down the side, days across
